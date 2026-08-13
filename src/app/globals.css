@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+
+  --background: #f6f6f4;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e1e0da;
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #85837c;
+
+  --series-1: #2a78d6; /* blue */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua */
+  --series-4: #eda100; /* yellow */
+  --series-5: #e87ba4; /* magenta */
+  --series-6: #4a3aa7; /* violet */
+  --series-7: #e34948; /* red */
+
+  --status-good: #008300;
+  --status-good-bg: #e3f2e3;
+  --status-warning: #b8860b;
+  --status-warning-bg: #faf1da;
+  --status-critical: #c3362f;
+  --status-critical-bg: #fbe6e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --background: #111110;
+    --surface-1: #1a1a19;
+    --surface-2: #232320;
+    --border: #34332e;
+
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8d84;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #9085e9;
+    --series-7: #e66767;
+
+    --status-good: #3fb63f;
+    --status-good-bg: #16321a;
+    --status-warning: #d9a733;
+    --status-warning-bg: #33290f;
+    --status-critical: #e66767;
+    --status-critical-bg: #3a1a1a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #111110;
+  --surface-1: #1a1a19;
+  --surface-2: #232320;
+  --border: #34332e;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8d84;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #9085e9;
+  --series-7: #e66767;
+
+  --status-good: #3fb63f;
+  --status-good-bg: #16321a;
+  --status-warning: #d9a733;
+  --status-warning-bg: #33290f;
+  --status-critical: #e66767;
+  --status-critical-bg: #3a1a1a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--text-primary);
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}

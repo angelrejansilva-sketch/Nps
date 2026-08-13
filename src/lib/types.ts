@@ -1,0 +1,45 @@
+export type Classification = "promoter" | "passive" | "detractor";
+
+export type ScoreStatus = "valid" | "no_response" | "invalid";
+
+export interface QualityIssue {
+  field: string;
+  reason: string;
+  raw: string;
+}
+
+export interface NpsResponse {
+  id: string;
+  createdAt: Date | null;
+  contactName: string;
+  contactPhone: string;
+  chamado: string;
+  equipmentRaw: string;
+  equipmentCategory: string;
+  problemaSolucionado: "sim" | "nao" | "sem_resposta";
+  score: number | null;
+  scoreStatus: ScoreStatus;
+  scoreRaw: string;
+  classification: Classification | null;
+  motivoNota: string;
+  satisfacaoAtp: number | null;
+  avaliacaoProduto: number | null;
+  comentario: string | null;
+  dataChamado: Date | null;
+  dataChamadoRaw: string;
+  qualityIssues: QualityIssue[];
+}
+
+export interface ParseResult {
+  responses: NpsResponse[];
+  totalRows: number;
+  columnsFound: string[];
+  missingColumns: string[];
+}
+
+export interface Filters {
+  dateFrom: string | null;
+  dateTo: string | null;
+  equipmentCategories: string[];
+  search: string;
+}
