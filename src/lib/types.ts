@@ -48,6 +48,8 @@ export interface Filters {
   equipmentCategories: string[];
   segmentos: string[];
   marcas: string[];
+  tiposProduto: string[];
+  modelos: string[];
   chamado: string;
   search: string;
 }

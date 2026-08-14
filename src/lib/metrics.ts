@@ -120,6 +120,10 @@ export function byMarca(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.marca);
 }
 
+export function byEquipamentoOficial(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.equipamentoOficial);
+}
+
 export function byBarebone(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.barebone);
 }

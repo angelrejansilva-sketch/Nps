@@ -8,10 +8,21 @@ interface FilterBarProps {
   equipmentOptions: string[];
   segmentoOptions: string[];
   marcaOptions: string[];
+  tipoProdutoOptions: string[];
+  modeloOptions: string[];
   onReset: () => void;
 }
 
-export function FilterBar({ filters, onChange, equipmentOptions, segmentoOptions, marcaOptions, onReset }: FilterBarProps) {
+export function FilterBar({
+  filters,
+  onChange,
+  equipmentOptions,
+  segmentoOptions,
+  marcaOptions,
+  tipoProdutoOptions,
+  modeloOptions,
+  onReset,
+}: FilterBarProps) {
   return (
     <div
       className="flex flex-wrap items-end gap-4 rounded-xl border p-4"
@@ -56,6 +67,54 @@ export function FilterBar({ filters, onChange, equipmentOptions, segmentoOptions
             </option>
           ))}
         </select>
+      </Field>
+
+      <Field label="Tipo de produto" className="min-w-[180px]">
+        <select
+          multiple
+          value={filters.tiposProduto}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              tiposProduto: Array.from(e.target.selectedOptions, (o) => o.value),
+              modelos: [],
+            })
+          }
+          className="h-20 rounded border px-2 py-1 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
+        >
+          {tipoProdutoOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Modelo" className="min-w-[180px]">
+        <select
+          multiple
+          value={filters.modelos}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              modelos: Array.from(e.target.selectedOptions, (o) => o.value),
+            })
+          }
+          className="h-20 rounded border px-2 py-1 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
+        >
+          {modeloOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        {filters.tiposProduto.length === 0 && (
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            escolha um tipo pra filtrar
+          </span>
+        )}
       </Field>
 
       <Field label="Segmento" className="min-w-[160px]">

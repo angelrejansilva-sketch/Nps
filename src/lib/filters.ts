@@ -6,6 +6,8 @@ export const EMPTY_FILTERS: Filters = {
   equipmentCategories: [],
   segmentos: [],
   marcas: [],
+  tiposProduto: [],
+  modelos: [],
   chamado: "",
   search: "",
 };
@@ -37,6 +39,16 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
     if (filters.marcas.length > 0) {
       const marca = r.marca ?? "Não classificado";
       if (!filters.marcas.includes(marca)) return false;
+    }
+
+    if (filters.tiposProduto.length > 0) {
+      const tipo = r.equipamentoOficial ?? "Não classificado";
+      if (!filters.tiposProduto.includes(tipo)) return false;
+    }
+
+    if (filters.modelos.length > 0) {
+      const modelo = r.barebone ?? "Não classificado";
+      if (!filters.modelos.includes(modelo)) return false;
     }
 
     if (chamado && !r.chamado.toLowerCase().includes(chamado)) return false;

@@ -7,6 +7,7 @@ import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
   byBarebone,
+  byEquipamentoOficial,
   byEquipmentCategory,
   byMarca,
   byMotivo,
@@ -76,6 +77,14 @@ export function Dashboard() {
   const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
   const segmentoOptions = useMemo(() => bySegmento(responses).map((c) => c.category), [responses]);
   const marcaOptions = useMemo(() => byMarca(responses).map((c) => c.category), [responses]);
+  const tipoProdutoOptions = useMemo(() => byEquipamentoOficial(responses).map((c) => c.category), [responses]);
+  const modeloOptions = useMemo(() => {
+    const scoped =
+      filters.tiposProduto.length > 0
+        ? responses.filter((r) => filters.tiposProduto.includes(r.equipamentoOficial ?? "Não classificado"))
+        : responses;
+    return byBarebone(scoped).map((c) => c.category);
+  }, [responses, filters.tiposProduto]);
 
   if (authLoading || dataLoading) {
     return (
@@ -206,6 +215,8 @@ export function Dashboard() {
         equipmentOptions={equipmentOptions}
         segmentoOptions={segmentoOptions}
         marcaOptions={marcaOptions}
+        tipoProdutoOptions={tipoProdutoOptions}
+        modeloOptions={modeloOptions}
         onReset={() => setFilters(EMPTY_FILTERS)}
       />
 
