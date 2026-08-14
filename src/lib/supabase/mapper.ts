@@ -10,6 +10,10 @@ export interface NpsResponseRow {
   equipment_raw: string | null;
   equipment_category: string | null;
   segmento: string | null;
+  sku: string | null;
+  marca: string | null;
+  equipamento_oficial: string | null;
+  barebone: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   score_status: "valid" | "no_response" | "invalid";
@@ -45,6 +49,10 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     equipmentRaw: row.equipment_raw ?? "",
     equipmentCategory: row.equipment_category ?? categorizeEquipment(row.equipment_raw ?? ""),
     segmento: row.segmento,
+    sku: row.sku,
+    marca: row.marca,
+    equipamentoOficial: row.equipamento_oficial,
+    barebone: row.barebone,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
     scoreStatus: row.score_status,
@@ -63,7 +71,10 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
 export function npsResponseToDbRow(
   r: NpsResponse,
   importBatchId: string
-): Omit<NpsResponseRow, "score_status" | "problema_solucionado" | "classification" | "segmento"> & {
+): Omit<
+  NpsResponseRow,
+  "score_status" | "problema_solucionado" | "classification" | "segmento" | "sku" | "marca" | "equipamento_oficial" | "barebone"
+> & {
   score_status: string;
   problema_solucionado: string;
   classification: string | null;

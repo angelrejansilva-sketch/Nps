@@ -95,10 +95,14 @@ export function byEquipmentCategory(responses: NpsResponse[]): CategoryPoint[] {
     .sort((a, b) => b.validTotal - a.validTotal);
 }
 
-export function bySegmento(responses: NpsResponse[]): CategoryPoint[] {
+function groupByKey(
+  responses: NpsResponse[],
+  keyFn: (r: NpsResponse) => string | null,
+  fallback = "Não classificado"
+): CategoryPoint[] {
   const buckets = new Map<string, NpsResponse[]>();
   for (const r of responses) {
-    const key = r.segmento ?? "Não classificado";
+    const key = keyFn(r) ?? fallback;
     const list = buckets.get(key) ?? [];
     list.push(r);
     buckets.set(key, list);
@@ -106,6 +110,18 @@ export function bySegmento(responses: NpsResponse[]): CategoryPoint[] {
   return [...buckets.entries()]
     .map(([category, list]) => ({ category, ...summarizeNps(list) }))
     .sort((a, b) => b.validTotal - a.validTotal);
+}
+
+export function bySegmento(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.segmento);
+}
+
+export function byMarca(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.marca);
+}
+
+export function byBarebone(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.barebone);
 }
 
 export interface MotivoPoint {

@@ -24,9 +24,12 @@ export function useSegmentoImport(onSynced: () => void) {
       try {
         const parsed = parseChamadoSegmentoCsv(text);
 
-        if (!parsed.chamadoColumn || !parsed.segmentoColumn) {
+        if (!parsed.chamadoColumn) {
+          throw new Error("Não encontrei a coluna de Chamado nesse arquivo.");
+        }
+        if (parsed.pairs.length === 0) {
           throw new Error(
-            "Não encontrei colunas de chamado e segmento nesse arquivo. Verifique se ele tem colunas com esses nomes."
+            "Não encontrei colunas de Segmento, SKU, Marca, Equipamento ou Barebone com dados nesse arquivo."
           );
         }
 
@@ -38,7 +41,7 @@ export function useSegmentoImport(onSynced: () => void) {
         const updated = await syncSegmento(supabase);
 
         setLastInfo(
-          `${fileName}: ${parsed.pairs.length} chamados com segmento importados, ${updated} respostas atualizadas.`
+          `${fileName}: ${parsed.pairs.length} chamados importados, ${updated} respostas atualizadas.`
         );
         onSynced();
       } catch (e) {

@@ -6,7 +6,9 @@ import { downloadCsv, responsesToCsv } from "@/lib/export";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
+  byBarebone,
   byEquipmentCategory,
+  byMarca,
   byMotivo,
   bySegmento,
   monthlyTrend,
@@ -62,6 +64,8 @@ export function Dashboard() {
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
   const equipmentRanking = useMemo(() => byEquipmentCategory(filtered), [filtered]);
   const segmentoRanking = useMemo(() => bySegmento(filtered), [filtered]);
+  const marcaRanking = useMemo(() => byMarca(filtered), [filtered]);
+  const bareboneRanking = useMemo(() => byBarebone(filtered), [filtered]);
   const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
@@ -71,6 +75,7 @@ export function Dashboard() {
 
   const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
   const segmentoOptions = useMemo(() => bySegmento(responses).map((c) => c.category), [responses]);
+  const marcaOptions = useMemo(() => byMarca(responses).map((c) => c.category), [responses]);
 
   if (authLoading || dataLoading) {
     return (
@@ -138,7 +143,7 @@ export function Dashboard() {
               </p>
             )}
           </SectionCard>
-          <SectionCard title="Atualizar segmento" subtitle="Liga cada chamado a Varejo / Governo / Corporativo">
+          <SectionCard title="Atualizar segmento e produto" subtitle="Liga cada chamado a segmento, marca, modelo (barebone) e SKU">
             <SegmentoUpload
               onFile={segmentoImport.importCsv}
               importing={segmentoImport.importing}
@@ -200,6 +205,7 @@ export function Dashboard() {
         onChange={setFilters}
         equipmentOptions={equipmentOptions}
         segmentoOptions={segmentoOptions}
+        marcaOptions={marcaOptions}
         onReset={() => setFilters(EMPTY_FILTERS)}
       />
 
@@ -245,6 +251,18 @@ export function Dashboard() {
           subtitle="Ordenado pela maior taxa de detratores — onde agir primeiro"
         >
           <MotivoBreakdown data={motivoRanking} />
+        </SectionCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <SectionCard title="NPS por marca" subtitle="Marca oficial (Chamados Encerrados) — importe o mapa de chamados para preencher">
+          <EquipmentRanking data={marcaRanking} />
+        </SectionCard>
+        <SectionCard
+          title="NPS por modelo (barebone)"
+          subtitle="Ex: VAIO TL10 — modelo oficial do chamado, top 12 por volume"
+        >
+          <EquipmentRanking data={bareboneRanking} />
         </SectionCard>
       </div>
 

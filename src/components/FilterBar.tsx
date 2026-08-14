@@ -7,10 +7,11 @@ interface FilterBarProps {
   onChange: (filters: Filters) => void;
   equipmentOptions: string[];
   segmentoOptions: string[];
+  marcaOptions: string[];
   onReset: () => void;
 }
 
-export function FilterBar({ filters, onChange, equipmentOptions, segmentoOptions, onReset }: FilterBarProps) {
+export function FilterBar({ filters, onChange, equipmentOptions, segmentoOptions, marcaOptions, onReset }: FilterBarProps) {
   return (
     <div
       className="flex flex-wrap items-end gap-4 rounded-xl border p-4"
@@ -71,6 +72,27 @@ export function FilterBar({ filters, onChange, equipmentOptions, segmentoOptions
           style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
         >
           {segmentoOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Marca" className="min-w-[160px]">
+        <select
+          multiple
+          value={filters.marcas}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              marcas: Array.from(e.target.selectedOptions, (o) => o.value),
+            })
+          }
+          className="h-20 rounded border px-2 py-1 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
+        >
+          {marcaOptions.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
             </option>

@@ -5,6 +5,7 @@ export const EMPTY_FILTERS: Filters = {
   dateTo: null,
   equipmentCategories: [],
   segmentos: [],
+  marcas: [],
   chamado: "",
   search: "",
 };
@@ -33,10 +34,15 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
       if (!filters.segmentos.includes(seg)) return false;
     }
 
+    if (filters.marcas.length > 0) {
+      const marca = r.marca ?? "Não classificado";
+      if (!filters.marcas.includes(marca)) return false;
+    }
+
     if (chamado && !r.chamado.toLowerCase().includes(chamado)) return false;
 
     if (search) {
-      const haystack = `${r.contactName} ${r.chamado} ${r.comentario ?? ""} ${r.equipmentRaw}`.toLowerCase();
+      const haystack = `${r.contactName} ${r.chamado} ${r.comentario ?? ""} ${r.equipmentRaw} ${r.barebone ?? ""}`.toLowerCase();
       if (!haystack.includes(search)) return false;
     }
 
