@@ -13,7 +13,7 @@ export async function fetchAllResponses(supabase: SupabaseClient): Promise<NpsRe
     const { data, error } = await supabase
       .from("nps_responses")
       .select(
-        "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source"
+        "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source"
       )
       .range(from, from + PAGE_SIZE - 1)
       .order("source_id", { ascending: true });
@@ -76,4 +76,35 @@ export async function upsertResponses(
     if (error) throw error;
     onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
   }
+}
+
+export interface ChamadoSegmento {
+  chamado: string;
+  segmento: string;
+}
+
+export async function upsertChamadoSegmento(
+  supabase: SupabaseClient,
+  pairs: ChamadoSegmento[],
+  importBatchId: string | null,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const rows = pairs.map((p) => ({
+    chamado: p.chamado,
+    segmento: p.segmento,
+    import_batch_id: importBatchId,
+  }));
+
+  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+    const { error } = await supabase.from("nps_chamado_segmento").upsert(batch, { onConflict: "chamado" });
+    if (error) throw error;
+    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
+  }
+}
+
+export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase.rpc("sync_nps_segmento");
+  if (error) throw error;
+  return (data as number) ?? 0;
 }

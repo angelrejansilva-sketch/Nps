@@ -9,6 +9,7 @@ export interface NpsResponseRow {
   contact_phone: string | null;
   equipment_raw: string | null;
   equipment_category: string | null;
+  segmento: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   score_status: "valid" | "no_response" | "invalid";
@@ -43,6 +44,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     chamado: row.chamado ?? "",
     equipmentRaw: row.equipment_raw ?? "",
     equipmentCategory: row.equipment_category ?? categorizeEquipment(row.equipment_raw ?? ""),
+    segmento: row.segmento,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
     scoreStatus: row.score_status,
@@ -61,7 +63,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
 export function npsResponseToDbRow(
   r: NpsResponse,
   importBatchId: string
-): Omit<NpsResponseRow, "score_status" | "problema_solucionado" | "classification"> & {
+): Omit<NpsResponseRow, "score_status" | "problema_solucionado" | "classification" | "segmento"> & {
   score_status: string;
   problema_solucionado: string;
   classification: string | null;

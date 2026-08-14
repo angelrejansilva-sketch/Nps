@@ -16,6 +16,7 @@ export interface NpsResponse {
   chamado: string;
   equipmentRaw: string;
   equipmentCategory: string;
+  segmento: string | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   scoreStatus: ScoreStatus;
@@ -41,5 +42,7 @@ export interface Filters {
   dateFrom: string | null;
   dateTo: string | null;
   equipmentCategories: string[];
+  segmentos: string[];
+  chamado: string;
   search: string;
 }

@@ -57,6 +57,7 @@ function toRow(raw: RawRow, index: number): NpsResponse {
     chamado: (raw.chamado ?? "").trim(),
     equipmentRaw,
     equipmentCategory: categorizeEquipment(equipmentRaw),
+    segmento: null,
     problemaSolucionado: parseProblemaSolucionado(raw.problema_solucionado ?? ""),
     score,
     scoreStatus,

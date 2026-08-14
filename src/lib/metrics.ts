@@ -31,6 +31,12 @@ export function responseRate(responses: NpsResponse[]): number | null {
   return ((responses.length - noResponse) / responses.length) * 100;
 }
 
+export function averageOf(values: (number | null)[]): number | null {
+  const valid = values.filter((v): v is number => v !== null);
+  if (valid.length === 0) return null;
+  return valid.reduce((sum, v) => sum + v, 0) / valid.length;
+}
+
 export function resolutionRate(responses: NpsResponse[]): number | null {
   const sim = responses.filter((r) => r.problemaSolucionado === "sim").length;
   const nao = responses.filter((r) => r.problemaSolucionado === "nao").length;
@@ -83,6 +89,19 @@ export function byEquipmentCategory(responses: NpsResponse[]): CategoryPoint[] {
     const list = buckets.get(r.equipmentCategory) ?? [];
     list.push(r);
     buckets.set(r.equipmentCategory, list);
+  }
+  return [...buckets.entries()]
+    .map(([category, list]) => ({ category, ...summarizeNps(list) }))
+    .sort((a, b) => b.validTotal - a.validTotal);
+}
+
+export function bySegmento(responses: NpsResponse[]): CategoryPoint[] {
+  const buckets = new Map<string, NpsResponse[]>();
+  for (const r of responses) {
+    const key = r.segmento ?? "Não classificado";
+    const list = buckets.get(key) ?? [];
+    list.push(r);
+    buckets.set(key, list);
   }
   return [...buckets.entries()]
     .map(([category, list]) => ({ category, ...summarizeNps(list) }))

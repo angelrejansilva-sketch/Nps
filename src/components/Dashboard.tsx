@@ -5,8 +5,10 @@ import { EMPTY_FILTERS, applyFilters } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
+  averageOf,
   byEquipmentCategory,
   byMotivo,
+  bySegmento,
   monthlyTrend,
   resolutionRate,
   responseRate,
@@ -16,6 +18,7 @@ import {
 import type { Filters } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useNpsData } from "@/hooks/useNpsData";
+import { useSegmentoImport } from "@/hooks/useSegmentoImport";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { DataQualityPanel } from "./DataQualityPanel";
 import { DistributionBar } from "./DistributionBar";
@@ -26,6 +29,7 @@ import { KpiCard } from "./KpiCard";
 import { MotivoBreakdown } from "./MotivoBreakdown";
 import { ResponseTable } from "./ResponseTable";
 import { SectionCard } from "./SectionCard";
+import { SegmentoUpload } from "./SegmentoUpload";
 import { NpsTrendChart, VolumeTrendChart } from "./TrendCharts";
 
 export function Dashboard() {
@@ -38,7 +42,10 @@ export function Dashboard() {
     importProgress,
     lastImportInfo,
     importCsv,
+    reload,
   } = useNpsData(profile?.id);
+
+  const segmentoImport = useSegmentoImport(reload);
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showImport, setShowImport] = useState(false);
@@ -48,12 +55,16 @@ export function Dashboard() {
   const summary = useMemo(() => summarizeNps(filtered), [filtered]);
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
   const equipmentRanking = useMemo(() => byEquipmentCategory(filtered), [filtered]);
+  const segmentoRanking = useMemo(() => bySegmento(filtered), [filtered]);
   const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
   const resRate = useMemo(() => resolutionRate(filtered), [filtered]);
+  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
+  const avgSatisfacao = useMemo(() => averageOf(filtered.map((r) => r.satisfacaoAtp)), [filtered]);
 
   const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
+  const segmentoOptions = useMemo(() => bySegmento(responses).map((c) => c.category), [responses]);
 
   if (authLoading || dataLoading) {
     return (
@@ -80,7 +91,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -112,14 +123,38 @@ export function Dashboard() {
       </header>
 
       {showImport && (
-        <SectionCard title="Atualizar base" subtitle="Importa um CSV novo — respostas existentes (mesmo id) são atualizadas">
-          <FileUpload onFile={importCsv} />
-        </SectionCard>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <SectionCard title="Atualizar respostas" subtitle="Importa o CSV de NPS — respostas existentes (mesmo id) são atualizadas">
+            <FileUpload onFile={importCsv} />
+            {lastImportInfo && !importing && (
+              <p className="text-sm" style={{ color: "var(--status-good)" }}>
+                {lastImportInfo}
+              </p>
+            )}
+          </SectionCard>
+          <SectionCard title="Atualizar segmento" subtitle="Liga cada chamado a Varejo / Governo / Corporativo">
+            <SegmentoUpload
+              onFile={segmentoImport.importCsv}
+              importing={segmentoImport.importing}
+              progress={segmentoImport.progress}
+            />
+            {segmentoImport.lastInfo && (
+              <p className="text-sm" style={{ color: "var(--status-good)" }}>
+                {segmentoImport.lastInfo}
+              </p>
+            )}
+            {segmentoImport.error && (
+              <p className="text-sm" style={{ color: "var(--status-critical)" }}>
+                {segmentoImport.error}
+              </p>
+            )}
+          </SectionCard>
+        </div>
       )}
 
       {importing && <ImportOverlay progress={importProgress} />}
 
-      {lastImportInfo && !importing && (
+      {lastImportInfo && !importing && !showImport && (
         <div
           className="rounded-lg border px-4 py-3 text-sm"
           style={{ borderColor: "var(--status-good)", background: "var(--status-good-bg)", color: "var(--status-good)" }}
@@ -141,18 +176,21 @@ export function Dashboard() {
         filters={filters}
         onChange={setFilters}
         equipmentOptions={equipmentOptions}
+        segmentoOptions={segmentoOptions}
         onReset={() => setFilters(EMPTY_FILTERS)}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard
           label="NPS"
           value={formatNps(summary.nps)}
           sublabel={`${formatNumber(summary.validTotal)} respostas válidas`}
           tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
         />
-        <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota de recomendação" />
-        <KpiCard label="Taxa de resolução" value={formatPercent(resRate)} sublabel="problema resolvido, entre quem respondeu" />
+        <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
+        <KpiCard label="Taxa de resolução" value={formatPercent(resRate)} sublabel="problema resolvido" />
+        <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
+        <KpiCard label="Satisfação ATP" value={avgSatisfacao !== null ? avgSatisfacao.toFixed(1) : "—"} sublabel="média 1-5" />
         <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(responses.length)} na base`} />
       </div>
 
@@ -169,9 +207,15 @@ export function Dashboard() {
         </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <SectionCard title="NPS por equipamento" subtitle="Top 12 categorias por volume de respostas">
           <EquipmentRanking data={equipmentRanking} />
+        </SectionCard>
+        <SectionCard
+          title="NPS por segmento"
+          subtitle="Varejo / Governo / Corporativo — importe o mapa de chamados para preencher"
+        >
+          <EquipmentRanking data={segmentoRanking} />
         </SectionCard>
         <SectionCard
           title="Motivo da nota"

@@ -4,6 +4,8 @@ export const EMPTY_FILTERS: Filters = {
   dateFrom: null,
   dateTo: null,
   equipmentCategories: [],
+  segmentos: [],
+  chamado: "",
   search: "",
 };
 
@@ -11,6 +13,7 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
   const from = filters.dateFrom ? new Date(filters.dateFrom) : null;
   const to = filters.dateTo ? new Date(filters.dateTo) : null;
   const search = filters.search.trim().toLowerCase();
+  const chamado = filters.chamado.trim().toLowerCase();
 
   return responses.filter((r) => {
     const date = r.dataChamado ?? r.createdAt;
@@ -24,6 +27,13 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
     ) {
       return false;
     }
+
+    if (filters.segmentos.length > 0) {
+      const seg = r.segmento ?? "Não classificado";
+      if (!filters.segmentos.includes(seg)) return false;
+    }
+
+    if (chamado && !r.chamado.toLowerCase().includes(chamado)) return false;
 
     if (search) {
       const haystack = `${r.contactName} ${r.chamado} ${r.comentario ?? ""} ${r.equipmentRaw}`.toLowerCase();
