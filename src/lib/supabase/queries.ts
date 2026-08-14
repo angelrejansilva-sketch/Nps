@@ -6,6 +6,29 @@ import { dbRowToNpsResponse, npsResponseToDbRow, type NpsResponseRow } from "./m
 
 const PAGE_SIZE = 1000;
 const UPSERT_BATCH_SIZE = 500;
+const UPSERT_CONCURRENCY = 8;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+  return batches;
+}
+
+/** Runs `worker` over `batches` with at most `concurrency` in flight at once. */
+async function runBatchesConcurrent<T>(
+  batches: T[][],
+  concurrency: number,
+  worker: (batch: T[]) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  async function runWorker() {
+    while (next < batches.length) {
+      const batch = batches[next++];
+      await worker(batch);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, runWorker));
+}
 
 const RESPONSES_SELECT =
   "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
@@ -82,13 +105,15 @@ export async function upsertResponses(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const rows = responses.map((r) => npsResponseToDbRow(r, importBatchId));
+  const batches = chunk(rows, UPSERT_BATCH_SIZE);
+  let done = 0;
 
-  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
-    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+  await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
     const { error } = await supabase.from("nps_responses").upsert(batch, { onConflict: "source_id" });
     if (error) throw error;
-    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
-  }
+    done += batch.length;
+    onProgress?.(done, rows.length);
+  });
 }
 
 export interface ChamadoInfo {
@@ -115,13 +140,15 @@ export async function upsertChamadoSegmento(
     barebone: p.barebone,
     import_batch_id: importBatchId,
   }));
+  const batches = chunk(rows, UPSERT_BATCH_SIZE);
+  let done = 0;
 
-  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
-    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+  await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
     const { error } = await supabase.from("nps_chamado_segmento").upsert(batch, { onConflict: "chamado" });
     if (error) throw error;
-    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
-  }
+    done += batch.length;
+    onProgress?.(done, rows.length);
+  });
 }
 
 export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
@@ -137,13 +164,15 @@ export async function upsertChamados(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const rows = records.map((r) => ({ ...r, import_batch_id: importBatchId }));
+  const batches = chunk(rows, UPSERT_BATCH_SIZE);
+  let done = 0;
 
-  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
-    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+  await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
     const { error } = await supabase.from("nps_chamados").upsert(batch, { onConflict: "chamado" });
     if (error) throw error;
-    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
-  }
+    done += batch.length;
+    onProgress?.(done, rows.length);
+  });
 }
 
 export async function upsertProdutos(
@@ -153,13 +182,15 @@ export async function upsertProdutos(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const rows = produtos.map((p) => ({ ...p, import_batch_id: importBatchId }));
+  const batches = chunk(rows, UPSERT_BATCH_SIZE);
+  let done = 0;
 
-  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
-    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+  await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
     const { error } = await supabase.from("nps_produtos").upsert(batch, { onConflict: "codigo_material" });
     if (error) throw error;
-    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
-  }
+    done += batch.length;
+    onProgress?.(done, rows.length);
+  });
 }
 
 export async function fetchProdutoStats(supabase: SupabaseClient): Promise<{
