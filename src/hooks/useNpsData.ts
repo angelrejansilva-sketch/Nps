@@ -15,6 +15,7 @@ interface ImportProgress {
 export function useNpsData(userId: string | undefined) {
   const [responses, setResponses] = useState<NpsResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState<ImportProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
@@ -22,15 +23,17 @@ export function useNpsData(userId: string | undefined) {
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setLoadProgress(null);
     setError(null);
     try {
       const supabase = createClient();
-      const data = await fetchAllResponses(supabase);
+      const data = await fetchAllResponses(supabase, (done, total) => setLoadProgress({ done, total }));
       setResponses(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar dados do Supabase.");
     } finally {
       setLoading(false);
+      setLoadProgress(null);
     }
   }, []);
 
@@ -90,5 +93,5 @@ export function useNpsData(userId: string | undefined) {
     [userId, reload]
   );
 
-  return { responses, loading, error, importing, importProgress, lastImportInfo, importCsv, reload };
+  return { responses, loading, loadProgress, error, importing, importProgress, lastImportInfo, importCsv, reload };
 }

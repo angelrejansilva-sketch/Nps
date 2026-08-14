@@ -44,6 +44,7 @@ export function Dashboard() {
   const {
     responses,
     loading: dataLoading,
+    loadProgress,
     error,
     importing,
     importProgress,
@@ -89,7 +90,9 @@ export function Dashboard() {
   if (authLoading || dataLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--text-muted)" }}>
-        Carregando…
+        {loadProgress
+          ? `Carregando… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
+          : "Carregando…"}
       </div>
     );
   }

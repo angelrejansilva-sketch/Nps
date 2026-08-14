@@ -7,31 +7,42 @@ import { dbRowToNpsResponse, npsResponseToDbRow, type NpsResponseRow } from "./m
 const PAGE_SIZE = 1000;
 const UPSERT_BATCH_SIZE = 500;
 
-export async function fetchAllResponses(supabase: SupabaseClient): Promise<NpsResponse[]> {
-  const all: NpsResponse[] = [];
-  let from = 0;
+const RESPONSES_SELECT =
+  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
 
-  while (true) {
-    const { data, error } = await supabase
-      .from("nps_responses")
-      .select(
-        "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source"
-      )
-      .range(from, from + PAGE_SIZE - 1)
-      .order("source_id", { ascending: true });
+export async function fetchAllResponses(
+  supabase: SupabaseClient,
+  onProgress?: (done: number, total: number) => void
+): Promise<NpsResponse[]> {
+  const { count, error: countError } = await supabase
+    .from("nps_responses")
+    .select("*", { count: "exact", head: true });
+  if (countError) throw countError;
 
-    if (error) throw error;
-    if (!data || data.length === 0) break;
+  const total = count ?? 0;
+  if (total === 0) return [];
 
-    for (const row of data as NpsResponseRow[]) {
-      all.push(dbRowToNpsResponse(row));
-    }
+  const pageCount = Math.ceil(total / PAGE_SIZE);
+  let done = 0;
+  onProgress?.(0, total);
 
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, async (_, i) => {
+      const from = i * PAGE_SIZE;
+      const { data, error } = await supabase
+        .from("nps_responses")
+        .select(RESPONSES_SELECT)
+        .range(from, from + PAGE_SIZE - 1)
+        .order("source_id", { ascending: true });
 
-  return all;
+      if (error) throw error;
+      done += data?.length ?? 0;
+      onProgress?.(done, total);
+      return (data as NpsResponseRow[] | null) ?? [];
+    })
+  );
+
+  return pages.flat().map(dbRowToNpsResponse);
 }
 
 export interface ImportSummary {
