@@ -52,6 +52,37 @@ protegida pelas políticas de RLS descritas acima. **A `service_role` key
 nunca deve ser usada no app** (não é necessária, já que toda leitura/escrita
 passa pela sessão do usuário logado + RLS).
 
+Para a "Análise por IA" (seção abaixo), é preciso também definir
+`ANTHROPIC_API_KEY` — essa é uma chave secreta de verdade (não
+`NEXT_PUBLIC_`), então **nunca vai para o Git**, nem no `.env.production`.
+Defina em `.env.local` para rodar localmente, e no Vercel em Project →
+Settings → Environment Variables para produção. Veja `.env.example`.
+
+## Análise por IA
+
+Seção "Análise por IA" no painel: um chat que responde perguntas em
+linguagem natural sobre os dados atualmente filtrados (ex: "quais os
+principais motivos de detrator?", "como está o NPS por segmento?").
+
+Como funciona (`src/app/api/ask-ai/route.ts`):
+
+- É uma rota server-side do Next.js, protegida por login (verifica a sessão
+  Supabase antes de responder — mesmo controle de acesso do resto do app).
+- O navegador monta um **resumo agregado** dos dados já filtrados no painel
+  (`src/lib/aiSummary.ts`) — NPS, taxas, rankings por segmento/marca/modelo/
+  motivo, evolução mensal e uma amostra de comentários — e manda esse JSON
+  junto com a pergunta para a rota.
+- A rota chama a API da Claude (`claude-opus-5`, streaming) com esse JSON de
+  contexto. **Nunca envia nome, telefone ou número de chamado** — só
+  agregados e comentários anonimizados.
+- A resposta é transmitida em streaming de volta para o navegador (efeito de
+  "digitando").
+
+Essa abordagem (mandar um resumo agregado, em vez de dar à IA acesso direto
+ao banco) foi escolhida de propósito: é mais simples, mais barata, mais
+rápida, e elimina qualquer risco de a IA gerar/rodar consultas SQL abertas
+contra o Supabase.
+
 ## O que o painel calcula (e por quê é diferente do Power BI atual)
 
 O Power BI atual tem alguns problemas conhecidos (documentados em

@@ -36,6 +36,8 @@ yarn-error.log*
 # Supabase URL + anon/publishable key (protected by RLS, safe to expose
 # client-side), so Vercel builds pick it up with no manual dashboard step.
 !.env.production
+# .env.example documents required variable names only (no real secrets).
+!.env.example
 
 # vercel
 .vercel

@@ -19,11 +19,13 @@ import {
   summarizeQuality,
 } from "@/lib/metrics";
 import type { Filters } from "@/lib/types";
+import { buildAiDataSummary } from "@/lib/aiSummary";
 import { useAuth } from "@/hooks/useAuth";
 import { useNpsData } from "@/hooks/useNpsData";
 import { useProdutosImport } from "@/hooks/useProdutosImport";
 import { useProdutoStats } from "@/hooks/useProdutoStats";
 import { useSegmentoImport } from "@/hooks/useSegmentoImport";
+import { AiAnalysis } from "./AiAnalysis";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { DataQualityPanel } from "./DataQualityPanel";
 import { DistributionBar } from "./DistributionBar";
@@ -74,6 +76,8 @@ export function Dashboard() {
   const resRate = useMemo(() => resolutionRate(filtered), [filtered]);
   const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
   const avgSatisfacao = useMemo(() => averageOf(filtered.map((r) => r.satisfacaoAtp)), [filtered]);
+
+  const aiSummary = useMemo(() => buildAiDataSummary(filtered, responses.length), [filtered, responses.length]);
 
   const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
   const segmentoOptions = useMemo(() => bySegmento(responses).map((c) => c.category), [responses]);
@@ -239,6 +243,13 @@ export function Dashboard() {
 
       <SectionCard title="Distribuição" subtitle="Promotores, neutros e detratores no período filtrado">
         <DistributionBar summary={summary} />
+      </SectionCard>
+
+      <SectionCard
+        title="Análise por IA"
+        subtitle="Pergunte sobre os dados filtrados acima — respostas geradas com base nos números do painel"
+      >
+        <AiAnalysis summary={aiSummary} />
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
