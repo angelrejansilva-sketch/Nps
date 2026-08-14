@@ -21,6 +21,9 @@ export interface NpsResponse {
   marca: string | null;
   equipamentoOficial: string | null;
   barebone: string | null;
+  clienteUf: string | null;
+  clienteNome: string | null;
+  segmentoConsolidado: string | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   scoreStatus: ScoreStatus;

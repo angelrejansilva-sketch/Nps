@@ -31,7 +31,7 @@ async function runBatchesConcurrent<T>(
 }
 
 const RESPONSES_SELECT =
-  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
+  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, cliente_uf, cliente_nome, segmento_consolidado, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
 
 export async function fetchAllResponses(
   supabase: SupabaseClient,

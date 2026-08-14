@@ -14,6 +14,9 @@ export interface NpsResponseRow {
   marca: string | null;
   equipamento_oficial: string | null;
   barebone: string | null;
+  cliente_uf: string | null;
+  cliente_nome: string | null;
+  segmento_consolidado: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   score_status: "valid" | "no_response" | "invalid";
@@ -53,6 +56,9 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     marca: row.marca,
     equipamentoOficial: row.equipamento_oficial,
     barebone: row.barebone,
+    clienteUf: row.cliente_uf,
+    clienteNome: row.cliente_nome,
+    segmentoConsolidado: row.segmento_consolidado,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
     scoreStatus: row.score_status,
@@ -73,7 +79,17 @@ export function npsResponseToDbRow(
   importBatchId: string
 ): Omit<
   NpsResponseRow,
-  "score_status" | "problema_solucionado" | "classification" | "segmento" | "sku" | "marca" | "equipamento_oficial" | "barebone"
+  | "score_status"
+  | "problema_solucionado"
+  | "classification"
+  | "segmento"
+  | "sku"
+  | "marca"
+  | "equipamento_oficial"
+  | "barebone"
+  | "cliente_uf"
+  | "cliente_nome"
+  | "segmento_consolidado"
 > & {
   score_status: string;
   problema_solucionado: string;

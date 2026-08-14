@@ -1,5 +1,13 @@
 import type { Filters, NpsResponse } from "./types";
 
+/** Grupos consolidados de segmento (Segmento_novo_2 do Power BI), calculados em segmento_consolidado. */
+export const VAREJO_SEGMENTOS = ["VAREJO", "CORP PLATAFORMA"];
+export const GOVCORP_SEGMENTOS = ["GOV", "CORP", "HASS GOV", "HASS CORP"];
+
+export function bySegmentoConsolidado(responses: NpsResponse[], grupo: string[]): NpsResponse[] {
+  return responses.filter((r) => r.segmentoConsolidado !== null && grupo.includes(r.segmentoConsolidado));
+}
+
 export const EMPTY_FILTERS: Filters = {
   dateFrom: null,
   dateTo: null,

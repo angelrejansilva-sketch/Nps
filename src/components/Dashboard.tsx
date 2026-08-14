@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EMPTY_FILTERS, applyFilters } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
@@ -119,6 +120,15 @@ export function Dashboard() {
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
+          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
+            <Link href="/varejo" className="underline">
+              Varejo
+            </Link>
+            <span>·</span>
+            <Link href="/governo-corporativo" className="underline">
+              Governo/Corporativo
+            </Link>
+          </div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Análise de NPS
           </h1>

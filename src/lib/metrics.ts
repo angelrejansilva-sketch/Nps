@@ -128,6 +128,45 @@ export function byBarebone(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.barebone);
 }
 
+export function byEstado(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.clienteUf);
+}
+
+export function byCliente(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.clienteNome);
+}
+
+export function topByDetractors(points: CategoryPoint[], limit = 12): CategoryPoint[] {
+  return points
+    .filter((p) => p.detractors > 0)
+    .slice()
+    .sort((a, b) => b.detractors - a.detractors)
+    .slice(0, limit);
+}
+
+export function topByPromoters(points: CategoryPoint[], limit = 12): CategoryPoint[] {
+  return points
+    .filter((p) => p.promoters > 0)
+    .slice()
+    .sort((a, b) => b.promoters - a.promoters)
+    .slice(0, limit);
+}
+
+export interface ScorePoint {
+  score: number;
+  total: number;
+}
+
+export function byScore(responses: NpsResponse[]): ScorePoint[] {
+  const counts = new Array(11).fill(0);
+  for (const r of responses) {
+    if (r.scoreStatus === "valid" && r.score !== null && r.score >= 0 && r.score <= 10) {
+      counts[r.score]++;
+    }
+  }
+  return counts.map((total, score) => ({ score, total }));
+}
+
 export interface MotivoPoint {
   motivo: string;
   total: number;
