@@ -83,6 +83,31 @@ ao banco) foi escolhida de propósito: é mais simples, mais barata, mais
 rápida, e elimina qualquer risco de a IA gerar/rodar consultas SQL abertas
 contra o Supabase.
 
+## Sincronização automática (pipeline Python → Supabase)
+
+O pipeline local (`tratar_base_nps.py`, rodado via `.bat`) já calcula, a cada
+execução, só as linhas **novas** de resposta/chamado antes de gravar no Excel.
+As rotas `src/app/api/sync/nps/route.ts` e `src/app/api/sync/chamados/route.ts`
+recebem esse incremento (CSV) e chamam exatamente o mesmo código de
+parse/normalização usado pelo upload manual no painel — não existe uma segunda
+implementação da lógica de negócio em Python, então as duas vias nunca
+divergem.
+
+Diferente do resto do app, essas rotas não usam login de usuário (é uma
+máquina chamando, não uma pessoa logada):
+
+- Autenticação por segredo compartilhado — o script manda
+  `Authorization: Bearer <SYNC_API_KEY>`, conferido em `src/lib/syncAuth.ts`.
+- A escrita usa a `SUPABASE_SERVICE_ROLE_KEY` (bypassa RLS), isolada em
+  `src/lib/supabase/serviceRole.ts` e nunca exposta ao navegador.
+- `sync_nps_segmento()` (a função que propaga marca/modelo/segmento pra
+  `nps_responses`) foi ajustada pra aceitar chamadas com `service_role`, além
+  do check de perfil admin/analista já existente.
+
+Ambas as variáveis (`SUPABASE_SERVICE_ROLE_KEY`, `SYNC_API_KEY`) são segredos
+reais — configure só no Vercel (Project → Settings → Environment Variables) e
+no script Python, nunca no Git. Veja `.env.example`.
+
 ## O que o painel calcula (e por quê é diferente do Power BI atual)
 
 O Power BI atual tem alguns problemas conhecidos (documentados em

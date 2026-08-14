@@ -3,28 +3,12 @@
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { parseChamadosCsv, type ChamadoRecord } from "@/lib/parseChamados";
-import { syncSegmento, upsertChamadoSegmento, upsertChamados, type ChamadoInfo } from "@/lib/supabase/queries";
+import { chamadoRecordsToInfo, parseChamadosCsv } from "@/lib/parseChamados";
+import { syncSegmento, upsertChamadoSegmento, upsertChamados } from "@/lib/supabase/queries";
 
 interface Progress {
   done: number;
   total: number;
-}
-
-function toChamadoInfo(records: ChamadoRecord[]): ChamadoInfo[] {
-  const pairs: ChamadoInfo[] = [];
-  for (const r of records) {
-    if (!r.segmento && !r.sku && !r.marca && !r.equipamento && !r.barebone) continue;
-    pairs.push({
-      chamado: r.chamado,
-      segmento: r.segmento?.toUpperCase(),
-      sku: r.sku,
-      marca: r.marca?.toUpperCase(),
-      equipamentoOficial: r.equipamento?.toUpperCase(),
-      barebone: r.barebone?.toUpperCase(),
-    });
-  }
-  return pairs;
 }
 
 export function useSegmentoImport(onSynced: () => void) {
@@ -48,7 +32,7 @@ export function useSegmentoImport(onSynced: () => void) {
           throw new Error("Não encontrei a coluna de Chamado nesse arquivo.");
         }
 
-        const pairs = toChamadoInfo(parsedChamados.records);
+        const pairs = chamadoRecordsToInfo(parsedChamados.records);
         const supabase = createClient();
 
         const chamadosDone = { count: 0, total: parsedChamados.records.length };
