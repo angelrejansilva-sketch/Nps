@@ -12,9 +12,23 @@ export const EMPTY_FILTERS: Filters = {
   search: "",
 };
 
+/** Parses a `YYYY-MM` filter value into the first day of that month (local time). */
+function monthStart(value: string): Date | null {
+  const match = value.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, 1);
+}
+
+/** First instant of the month *after* a `YYYY-MM` filter value — the exclusive upper bound. */
+function monthEndExclusive(value: string): Date | null {
+  const match = value.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]), 1);
+}
+
 export function applyFilters(responses: NpsResponse[], filters: Filters): NpsResponse[] {
-  const from = filters.dateFrom ? new Date(filters.dateFrom) : null;
-  const to = filters.dateTo ? new Date(filters.dateTo) : null;
+  const from = filters.dateFrom ? monthStart(filters.dateFrom) : null;
+  const toExclusive = filters.dateTo ? monthEndExclusive(filters.dateTo) : null;
   const search = filters.search.trim().toLowerCase();
   const chamado = filters.chamado.trim().toLowerCase();
 
@@ -22,7 +36,7 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
     const date = r.dataChamado ?? r.createdAt;
 
     if (from && (!date || date < from)) return false;
-    if (to && (!date || date > to)) return false;
+    if (toExclusive && (!date || date >= toExclusive)) return false;
 
     if (
       filters.equipmentCategories.length > 0 &&

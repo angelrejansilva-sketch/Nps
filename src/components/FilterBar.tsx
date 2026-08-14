@@ -28,9 +28,9 @@ export function FilterBar({
       className="flex flex-wrap items-end gap-4 rounded-xl border p-4"
       style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
     >
-      <Field label="De">
+      <Field label="De (mês/ano)">
         <input
-          type="date"
+          type="month"
           value={filters.dateFrom ?? ""}
           onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || null })}
           className="rounded border px-2 py-1.5 text-sm"
@@ -38,9 +38,9 @@ export function FilterBar({
         />
       </Field>
 
-      <Field label="Até">
+      <Field label="Até (mês/ano)">
         <input
-          type="date"
+          type="month"
           value={filters.dateTo ?? ""}
           onChange={(e) => onChange({ ...filters, dateTo: e.target.value || null })}
           className="rounded border px-2 py-1.5 text-sm"
