@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { parseProdutosCsv } from "@/lib/parseProdutos";
 import { createImportBatch, upsertProdutos } from "@/lib/supabase/queries";
 
@@ -45,7 +46,7 @@ export function useProdutosImport(userId: string | undefined, onImported: () => 
         setLastInfo(`${fileName}: ${parsed.produtos.length} produtos importados.`);
         onImported();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao importar a tabela de produtos.");
+        setError(getErrorMessage(e, "Falha ao importar a tabela de produtos."));
       } finally {
         setImporting(false);
         setProgress(null);

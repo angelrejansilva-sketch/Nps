@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { parseChamadosCsv } from "@/lib/parseChamados";
 import { parseChamadoSegmentoCsv } from "@/lib/parseSegmento";
 import { syncSegmento, upsertChamadoSegmento, upsertChamados } from "@/lib/supabase/queries";
@@ -49,7 +50,7 @@ export function useSegmentoImport(onSynced: () => void) {
         );
         onSynced();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao importar os chamados.");
+        setError(getErrorMessage(e, "Falha ao importar os chamados."));
       } finally {
         setImporting(false);
         setProgress(null);

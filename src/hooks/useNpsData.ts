@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createImportBatch, fetchAllResponses, upsertResponses } from "@/lib/supabase/queries";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { parseNpsCsv } from "@/lib/parse";
 import { summarizeQuality } from "@/lib/metrics";
 import type { NpsResponse } from "@/lib/types";
@@ -81,9 +82,10 @@ export function useNpsData(userId: string | undefined) {
         await reload();
       } catch (e) {
         setError(
-          e instanceof Error
-            ? `Falha ao importar: ${e.message}`
-            : "Falha ao importar o arquivo. Verifique se você tem permissão (perfil admin ou analista)."
+          `Falha ao importar: ${getErrorMessage(
+            e,
+            "erro desconhecido. Verifique se você tem permissão (perfil admin ou analista)."
+          )}`
         );
       } finally {
         setImporting(false);
