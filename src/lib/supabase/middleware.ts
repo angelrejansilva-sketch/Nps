@@ -31,8 +31,12 @@ export async function updateSession(request: NextRequest) {
 
   const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
   const isAuthCallback = request.nextUrl.pathname.startsWith("/auth");
+  // API routes enforce their own auth (session cookie for /api/ask-ai, a
+  // bearer secret for the machine-to-machine /api/sync/* routes) and must
+  // return a proper status code — never redirect them to the HTML login page.
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
 
-  if (!user && !isLoginRoute && !isAuthCallback) {
+  if (!user && !isLoginRoute && !isAuthCallback && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
