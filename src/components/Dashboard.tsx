@@ -91,17 +91,15 @@ export function Dashboard() {
     return byBarebone(scoped).map((c) => c.category);
   }, [responses, filters.tiposProduto]);
 
-  if (authLoading || dataLoading) {
+  if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--text-muted)" }}>
-        {loadProgress
-          ? `Carregando… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
-          : "Carregando…"}
+        Carregando…
       </div>
     );
   }
 
-  if (responses.length === 0 && !showImport) {
+  if (!dataLoading && responses.length === 0 && !showImport) {
     return (
       <div className="flex flex-col gap-4">
         {canManageData ? (
@@ -125,7 +123,11 @@ export function Dashboard() {
             Análise de NPS
           </h1>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            {formatNumber(responses.length)} respostas na base
+            {dataLoading
+              ? loadProgress
+                ? `Carregando respostas… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
+                : "Carregando respostas…"
+              : `${formatNumber(responses.length)} respostas na base`}
             {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
         </div>
