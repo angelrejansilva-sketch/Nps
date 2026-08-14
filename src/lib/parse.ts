@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import { categorizeEquipment } from "./classify";
 import {
   classify,
+  cleanPhone,
   normalizeComment,
   normalizeMotivo,
   parseAvaliacaoProduto,
@@ -52,7 +53,7 @@ function toRow(raw: RawRow, index: number): NpsResponse {
     id: raw.id?.trim() || `row-${index}`,
     createdAt,
     contactName: (raw.contact_name ?? "").trim(),
-    contactPhone: (raw.contact_phone ?? "").trim(),
+    contactPhone: cleanPhone(raw.contact_phone ?? ""),
     chamado: (raw.chamado ?? "").trim(),
     equipmentRaw,
     equipmentCategory: categorizeEquipment(equipmentRaw),

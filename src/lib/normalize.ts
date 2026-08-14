@@ -11,6 +11,12 @@ const NO_RESPONSE_TOKENS = new Set(
   ].map(normalizeKey)
 );
 
+export function cleanPhone(raw: string): string {
+  const trimmed = raw.trim();
+  if (/^\d+\.0$/.test(trimmed)) return trimmed.slice(0, -2);
+  return trimmed;
+}
+
 export function parseScore(raw: string): {
   score: number | null;
   status: ScoreStatus;

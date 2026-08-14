@@ -13,8 +13,9 @@ import {
   summarizeNps,
   summarizeQuality,
 } from "@/lib/metrics";
-import { parseNpsCsv } from "@/lib/parse";
-import type { Filters, ParseResult } from "@/lib/types";
+import type { Filters } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useNpsData } from "@/hooks/useNpsData";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { DataQualityPanel } from "./DataQualityPanel";
 import { DistributionBar } from "./DistributionBar";
@@ -28,14 +29,21 @@ import { SectionCard } from "./SectionCard";
 import { NpsTrendChart, VolumeTrendChart } from "./TrendCharts";
 
 export function Dashboard() {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [result, setResult] = useState<ParseResult | null>(null);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const { profile, loading: authLoading, signOut, canManageData } = useAuth();
+  const {
+    responses,
+    loading: dataLoading,
+    error,
+    importing,
+    importProgress,
+    lastImportInfo,
+    importCsv,
+  } = useNpsData(profile?.id);
 
-  const filtered = useMemo(
-    () => (result ? applyFilters(result.responses, filters) : []),
-    [result, filters]
-  );
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [showImport, setShowImport] = useState(false);
+
+  const filtered = useMemo(() => applyFilters(responses, filters), [responses, filters]);
 
   const summary = useMemo(() => summarizeNps(filtered), [filtered]);
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
@@ -45,19 +53,29 @@ export function Dashboard() {
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
   const resRate = useMemo(() => resolutionRate(filtered), [filtered]);
 
-  const equipmentOptions = useMemo(
-    () => (result ? byEquipmentCategory(result.responses).map((c) => c.category) : []),
-    [result]
-  );
+  const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
 
-  if (!result) {
+  if (authLoading || dataLoading) {
     return (
-      <FileUpload
-        onFile={(name, text) => {
-          setFileName(name);
-          setResult(parseNpsCsv(text));
-        }}
-      />
+      <div className="flex min-h-screen items-center justify-center" style={{ color: "var(--text-muted)" }}>
+        Carregando…
+      </div>
+    );
+  }
+
+  if (responses.length === 0 && !showImport) {
+    return (
+      <div className="flex flex-col gap-4">
+        {canManageData ? (
+          <FileUpload onFile={importCsv} />
+        ) : (
+          <div className="mx-auto max-w-md py-24 text-center" style={{ color: "var(--text-secondary)" }}>
+            Ainda não há dados de NPS importados. Peça a um admin ou analista para
+            importar o arquivo.
+          </div>
+        )}
+        {importing && <ImportOverlay progress={importProgress} />}
+      </div>
     );
   }
 
@@ -69,29 +87,53 @@ export function Dashboard() {
             Análise de NPS
           </h1>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            {fileName} · {formatNumber(result.totalRows)} linhas importadas
+            {formatNumber(responses.length)} respostas na base
+            {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setResult(null);
-            setFileName(null);
-            setFilters(EMPTY_FILTERS);
-          }}
-          className="rounded border px-3 py-1.5 text-sm font-medium"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-        >
-          Importar outro arquivo
-        </button>
+        <div className="flex gap-2">
+          {canManageData && (
+            <button
+              onClick={() => setShowImport((s) => !s)}
+              className="rounded border px-3 py-1.5 text-sm font-medium"
+              style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+            >
+              {showImport ? "Fechar importação" : "Atualizar base"}
+            </button>
+          )}
+          <button
+            onClick={signOut}
+            className="rounded border px-3 py-1.5 text-sm font-medium"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          >
+            Sair
+          </button>
+        </div>
       </header>
 
-      {result.missingColumns.length > 0 && (
+      {showImport && (
+        <SectionCard title="Atualizar base" subtitle="Importa um CSV novo — respostas existentes (mesmo id) são atualizadas">
+          <FileUpload onFile={importCsv} />
+        </SectionCard>
+      )}
+
+      {importing && <ImportOverlay progress={importProgress} />}
+
+      {lastImportInfo && !importing && (
         <div
           className="rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: "var(--status-warning)", background: "var(--status-warning-bg)", color: "var(--status-warning)" }}
+          style={{ borderColor: "var(--status-good)", background: "var(--status-good-bg)", color: "var(--status-good)" }}
         >
-          Colunas esperadas não encontradas no arquivo: {result.missingColumns.join(", ")}. Algumas
-          análises podem ficar incompletas.
+          {lastImportInfo}
+        </div>
+      )}
+
+      {error && (
+        <div
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{ borderColor: "var(--status-critical)", background: "var(--status-critical-bg)", color: "var(--status-critical)" }}
+        >
+          {error}
         </div>
       )}
 
@@ -111,7 +153,7 @@ export function Dashboard() {
         />
         <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota de recomendação" />
         <KpiCard label="Taxa de resolução" value={formatPercent(resRate)} sublabel="problema resolvido, entre quem respondeu" />
-        <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(result.totalRows)} no arquivo`} />
+        <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(responses.length)} na base`} />
       </div>
 
       <SectionCard title="Distribuição" subtitle="Promotores, neutros e detratores no período filtrado">
@@ -165,6 +207,18 @@ export function Dashboard() {
       >
         <ResponseTable responses={filtered} />
       </SectionCard>
+    </div>
+  );
+}
+
+function ImportOverlay({ progress }: { progress: { done: number; total: number } | null }) {
+  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
+  return (
+    <div
+      className="rounded-lg border px-4 py-3 text-sm"
+      style={{ borderColor: "var(--series-1)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+    >
+      Importando… {progress ? `${formatNumber(progress.done)}/${formatNumber(progress.total)}${pct !== null ? ` (${pct}%)` : ""}` : "processando arquivo"}
     </div>
   );
 }
