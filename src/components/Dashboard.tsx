@@ -18,6 +18,8 @@ import {
 import type { Filters } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useNpsData } from "@/hooks/useNpsData";
+import { useProdutosImport } from "@/hooks/useProdutosImport";
+import { useProdutoStats } from "@/hooks/useProdutoStats";
 import { useSegmentoImport } from "@/hooks/useSegmentoImport";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { DataQualityPanel } from "./DataQualityPanel";
@@ -27,6 +29,8 @@ import { FileUpload } from "./FileUpload";
 import { FilterBar } from "./FilterBar";
 import { KpiCard } from "./KpiCard";
 import { MotivoBreakdown } from "./MotivoBreakdown";
+import { ProdutoCatalog } from "./ProdutoCatalog";
+import { ProdutosUpload } from "./ProdutosUpload";
 import { ResponseTable } from "./ResponseTable";
 import { SectionCard } from "./SectionCard";
 import { SegmentoUpload } from "./SegmentoUpload";
@@ -46,6 +50,8 @@ export function Dashboard() {
   } = useNpsData(profile?.id);
 
   const segmentoImport = useSegmentoImport(reload);
+  const produtoStats = useProdutoStats();
+  const produtosImport = useProdutosImport(profile?.id, produtoStats.reload);
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [showImport, setShowImport] = useState(false);
@@ -123,7 +129,7 @@ export function Dashboard() {
       </header>
 
       {showImport && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <SectionCard title="Atualizar respostas" subtitle="Importa o CSV de NPS — respostas existentes (mesmo id) são atualizadas">
             <FileUpload onFile={importCsv} />
             {lastImportInfo && !importing && (
@@ -146,6 +152,23 @@ export function Dashboard() {
             {segmentoImport.error && (
               <p className="text-sm" style={{ color: "var(--status-critical)" }}>
                 {segmentoImport.error}
+              </p>
+            )}
+          </SectionCard>
+          <SectionCard title="Atualizar catálogo de produtos" subtitle="Categoria, marca e fabricante (base_de_produto)">
+            <ProdutosUpload
+              onFile={produtosImport.importCsv}
+              importing={produtosImport.importing}
+              progress={produtosImport.progress}
+            />
+            {produtosImport.lastInfo && (
+              <p className="text-sm" style={{ color: "var(--status-good)" }}>
+                {produtosImport.lastInfo}
+              </p>
+            )}
+            {produtosImport.error && (
+              <p className="text-sm" style={{ color: "var(--status-critical)" }}>
+                {produtosImport.error}
               </p>
             )}
           </SectionCard>
@@ -224,6 +247,19 @@ export function Dashboard() {
           <MotivoBreakdown data={motivoRanking} />
         </SectionCard>
       </div>
+
+      {produtoStats.stats && produtoStats.stats.total > 0 && (
+        <SectionCard
+          title="Catálogo de produtos"
+          subtitle="Categoria e fabricante oficiais, do cadastro base_de_produto — referência para classificar equipamentos"
+        >
+          <ProdutoCatalog
+            total={produtoStats.stats.total}
+            byEquipamento={produtoStats.stats.byEquipamento}
+            byFabricante={produtoStats.stats.byFabricante}
+          />
+        </SectionCard>
+      )}
 
       <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
         <CommentsExplorer responses={filtered} />
