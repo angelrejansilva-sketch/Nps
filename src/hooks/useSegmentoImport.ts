@@ -3,13 +3,28 @@
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { parseChamadosCsv } from "@/lib/parseChamados";
-import { parseChamadoSegmentoCsv } from "@/lib/parseSegmento";
-import { syncSegmento, upsertChamadoSegmento, upsertChamados } from "@/lib/supabase/queries";
+import { parseChamadosCsv, type ChamadoRecord } from "@/lib/parseChamados";
+import { syncSegmento, upsertChamadoSegmento, upsertChamados, type ChamadoInfo } from "@/lib/supabase/queries";
 
 interface Progress {
   done: number;
   total: number;
+}
+
+function toChamadoInfo(records: ChamadoRecord[]): ChamadoInfo[] {
+  const pairs: ChamadoInfo[] = [];
+  for (const r of records) {
+    if (!r.segmento && !r.sku && !r.marca && !r.equipamento && !r.barebone) continue;
+    pairs.push({
+      chamado: r.chamado,
+      segmento: r.segmento?.toUpperCase(),
+      sku: r.sku,
+      marca: r.marca?.toUpperCase(),
+      equipamentoOficial: r.equipamento?.toUpperCase(),
+      barebone: r.barebone?.toUpperCase(),
+    });
+  }
+  return pairs;
 }
 
 export function useSegmentoImport(onSynced: () => void) {
@@ -24,24 +39,40 @@ export function useSegmentoImport(onSynced: () => void) {
       setError(null);
       setProgress(null);
       try {
-        const parsedSegmento = parseChamadoSegmentoCsv(text);
+        // Single parse pass covers both the full chamados mirror and the
+        // lightweight segmento/marca/modelo lookup — the CSV used to be
+        // parsed twice (once per table), doubling the client-side cost.
         const parsedChamados = parseChamadosCsv(text);
 
-        if (!parsedSegmento.chamadoColumn) {
+        if (!parsedChamados.chamadoColumn) {
           throw new Error("Não encontrei a coluna de Chamado nesse arquivo.");
         }
 
+        const pairs = toChamadoInfo(parsedChamados.records);
         const supabase = createClient();
 
-        if (parsedSegmento.pairs.length > 0) {
-          await upsertChamadoSegmento(supabase, parsedSegmento.pairs, null);
-        }
+        const chamadosDone = { count: 0, total: parsedChamados.records.length };
+        const pairsDone = { count: 0, total: pairs.length };
+        const reportProgress = () =>
+          setProgress({
+            done: chamadosDone.count + pairsDone.count,
+            total: chamadosDone.total + pairsDone.total,
+          });
 
-        if (parsedChamados.records.length > 0) {
-          await upsertChamados(supabase, parsedChamados.records, null, (done, total) =>
-            setProgress({ done, total })
-          );
-        }
+        await Promise.all([
+          pairs.length > 0
+            ? upsertChamadoSegmento(supabase, pairs, null, (done) => {
+                pairsDone.count = done;
+                reportProgress();
+              })
+            : Promise.resolve(),
+          parsedChamados.records.length > 0
+            ? upsertChamados(supabase, parsedChamados.records, null, (done) => {
+                chamadosDone.count = done;
+                reportProgress();
+              })
+            : Promise.resolve(),
+        ]);
 
         const updated = await syncSegmento(supabase);
 

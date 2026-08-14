@@ -19,7 +19,7 @@ const CHAMADO_COLUMN_NAMES = [
   "data_inicio_garantia",
 ] as const;
 
-export type ChamadoRecord = Record<(typeof CHAMADO_COLUMN_NAMES)[number] | "chamado", string | undefined>;
+export type ChamadoRecord = { chamado: string } & Record<(typeof CHAMADO_COLUMN_NAMES)[number], string | undefined>;
 
 export interface ParseChamadosResult {
   records: ChamadoRecord[];
