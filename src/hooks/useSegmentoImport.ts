@@ -2,8 +2,9 @@
 
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { parseChamadosCsv } from "@/lib/parseChamados";
 import { parseChamadoSegmentoCsv } from "@/lib/parseSegmento";
-import { syncSegmento, upsertChamadoSegmento } from "@/lib/supabase/queries";
+import { syncSegmento, upsertChamadoSegmento, upsertChamados } from "@/lib/supabase/queries";
 
 interface Progress {
   done: number;
@@ -22,30 +23,33 @@ export function useSegmentoImport(onSynced: () => void) {
       setError(null);
       setProgress(null);
       try {
-        const parsed = parseChamadoSegmentoCsv(text);
+        const parsedSegmento = parseChamadoSegmentoCsv(text);
+        const parsedChamados = parseChamadosCsv(text);
 
-        if (!parsed.chamadoColumn) {
+        if (!parsedSegmento.chamadoColumn) {
           throw new Error("Não encontrei a coluna de Chamado nesse arquivo.");
-        }
-        if (parsed.pairs.length === 0) {
-          throw new Error(
-            "Não encontrei colunas de Segmento, SKU, Marca, Equipamento ou Barebone com dados nesse arquivo."
-          );
         }
 
         const supabase = createClient();
-        await upsertChamadoSegmento(supabase, parsed.pairs, null, (done, total) =>
-          setProgress({ done, total })
-        );
+
+        if (parsedSegmento.pairs.length > 0) {
+          await upsertChamadoSegmento(supabase, parsedSegmento.pairs, null);
+        }
+
+        if (parsedChamados.records.length > 0) {
+          await upsertChamados(supabase, parsedChamados.records, null, (done, total) =>
+            setProgress({ done, total })
+          );
+        }
 
         const updated = await syncSegmento(supabase);
 
         setLastInfo(
-          `${fileName}: ${parsed.pairs.length} chamados importados, ${updated} respostas atualizadas.`
+          `${fileName}: ${parsedChamados.records.length} chamados importados (${parsedChamados.matchedColumns.length} colunas), ${updated} respostas de NPS atualizadas.`
         );
         onSynced();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao importar o mapa de segmento.");
+        setError(e instanceof Error ? e.message : "Falha ao importar os chamados.");
       } finally {
         setImporting(false);
         setProgress(null);

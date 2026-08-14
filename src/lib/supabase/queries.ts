@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NpsResponse } from "@/lib/types";
 import type { ProdutoRow } from "@/lib/parseProdutos";
+import type { ChamadoRecord } from "@/lib/parseChamados";
 import { dbRowToNpsResponse, npsResponseToDbRow, type NpsResponseRow } from "./mapper";
 
 const PAGE_SIZE = 1000;
@@ -116,6 +117,22 @@ export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
   const { data, error } = await supabase.rpc("sync_nps_segmento");
   if (error) throw error;
   return (data as number) ?? 0;
+}
+
+export async function upsertChamados(
+  supabase: SupabaseClient,
+  records: ChamadoRecord[],
+  importBatchId: string | null,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const rows = records.map((r) => ({ ...r, import_batch_id: importBatchId }));
+
+  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + UPSERT_BATCH_SIZE);
+    const { error } = await supabase.from("nps_chamados").upsert(batch, { onConflict: "chamado" });
+    if (error) throw error;
+    onProgress?.(Math.min(i + UPSERT_BATCH_SIZE, rows.length), rows.length);
+  }
 }
 
 export async function upsertProdutos(
