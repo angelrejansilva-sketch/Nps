@@ -7,12 +7,12 @@ import { averageOf, ctStats, summarizeNps } from "@/lib/metrics";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
-import { Button } from "./Button";
 import { CategoryStatTable } from "./CategoryStatTable";
 import { FilterBar } from "./FilterBar";
 import { KpiCard } from "./KpiCard";
 import { SectionCard } from "./SectionCard";
 import { SegmentNav } from "./SegmentNav";
+import { Sidebar } from "./Sidebar";
 
 export function CtDashboard() {
   const { profile, loading: authLoading, signOut } = useAuth();
@@ -52,12 +52,7 @@ export function CtDashboard() {
   return (
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <header className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SegmentNav />
-          <Button variant="ghost" onClick={signOut}>
-            Sair
-          </Button>
-        </div>
+        <SegmentNav />
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Análise por CT
@@ -68,7 +63,6 @@ export function CtDashboard() {
                 ? `Carregando respostas… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
                 : "Carregando respostas…"
               : `${formatNumber(responses.length)} respostas na base`}
-            {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
         </div>
       </header>
@@ -82,40 +76,56 @@ export function CtDashboard() {
         </div>
       )}
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        yearOptions={yearOptions}
-        equipmentOptions={equipmentOptions}
-        segmentoOptions={segmentoOptions}
-        marcaOptions={marcaOptions}
-        tipoProdutoOptions={tipoProdutoOptions}
-        modeloOptions={modeloOptions}
-        onReset={() => setFilters(defaultFilters())}
-      />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <Sidebar
+          userName={profile?.full_name ?? profile?.email ?? "Usuário"}
+          userEmail={profile?.email}
+          onSignOut={signOut}
+          stats={[
+            { label: "Centros de Trabalho", value: formatNumber(cts.length) },
+            { label: "Pesquisas enviadas", value: formatNumber(filtered.length) },
+            { label: "NPS geral", value: formatNps(summary.nps) },
+            { label: "Avaliação", value: avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—" },
+          ]}
+        >
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            yearOptions={yearOptions}
+            equipmentOptions={equipmentOptions}
+            segmentoOptions={segmentoOptions}
+            marcaOptions={marcaOptions}
+            tipoProdutoOptions={tipoProdutoOptions}
+            modeloOptions={modeloOptions}
+            onReset={() => setFilters(defaultFilters())}
+          />
+        </Sidebar>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Centros de Trabalho" value={formatNumber(cts.length)} sublabel="com resposta no filtro" />
-        <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
-        <KpiCard
-          label="NPS geral"
-          value={formatNps(summary.nps)}
-          tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
-        />
-        <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
+        <main className="flex min-w-0 flex-1 flex-col gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <KpiCard label="Centros de Trabalho" value={formatNumber(cts.length)} sublabel="com resposta no filtro" />
+            <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
+            <KpiCard
+              label="NPS geral"
+              value={formatNps(summary.nps)}
+              tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
+            />
+            <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
+          </div>
+
+          <SectionCard
+            title="Centros de Trabalho"
+            subtitle="Clique nas colunas para ordenar — busque por CT para achar um específico"
+          >
+            <CategoryStatTable
+              data={cts}
+              categoryLabel="CT"
+              searchPlaceholder="Buscar CT…"
+              emptyLabel="Nenhum Centro de Trabalho encontrado."
+            />
+          </SectionCard>
+        </main>
       </div>
-
-      <SectionCard
-        title="Centros de Trabalho"
-        subtitle="Clique nas colunas para ordenar — busque por CT para achar um específico"
-      >
-        <CategoryStatTable
-          data={cts}
-          categoryLabel="CT"
-          searchPlaceholder="Buscar CT…"
-          emptyLabel="Nenhum Centro de Trabalho encontrado."
-        />
-      </SectionCard>
     </div>
   );
 }
