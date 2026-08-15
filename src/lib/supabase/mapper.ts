@@ -16,6 +16,7 @@ export interface NpsResponseRow {
   barebone: string | null;
   cliente_uf: string | null;
   cliente_nome: string | null;
+  projeto: string | null;
   segmento_consolidado: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
@@ -58,6 +59,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     barebone: row.barebone,
     clienteUf: row.cliente_uf,
     clienteNome: row.cliente_nome,
+    projeto: row.projeto,
     segmentoConsolidado: row.segmento_consolidado,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
@@ -89,6 +91,7 @@ export function npsResponseToDbRow(
   | "barebone"
   | "cliente_uf"
   | "cliente_nome"
+  | "projeto"
   | "segmento_consolidado"
 > & {
   score_status: string;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { EMPTY_FILTERS, applyFilters } from "@/lib/filters";
+import { EMPTY_FILTERS, applyFilters, isElegivelNps } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
@@ -64,6 +64,7 @@ export function Dashboard() {
   const [showImport, setShowImport] = useState(false);
 
   const filtered = useMemo(() => applyFilters(responses, filters), [responses, filters]);
+  const ineligibleCount = useMemo(() => responses.filter((r) => !isElegivelNps(r)).length, [responses]);
 
   const summary = useMemo(() => summarizeNps(filtered), [filtered]);
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
@@ -252,6 +253,12 @@ export function Dashboard() {
         <KpiCard label="Satisfação ATP" value={avgSatisfacao !== null ? avgSatisfacao.toFixed(1) : "—"} sublabel="média 1-5" />
         <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(responses.length)} na base`} />
       </div>
+
+      {ineligibleCount > 0 && (
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
+        </p>
+      )}
 
       <SectionCard title="Distribuição" subtitle="Promotores, neutros e detratores no período filtrado">
         <DistributionBar summary={summary} />

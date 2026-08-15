@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { EMPTY_FILTERS, applyFilters, bySegmentoConsolidado } from "@/lib/filters";
+import { EMPTY_FILTERS, applyFilters, bySegmentoConsolidado, isElegivelNps } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
@@ -52,6 +52,7 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
 
   const scoped = useMemo(() => bySegmentoConsolidado(responses, segmentGroup), [responses, segmentGroup]);
   const filtered = useMemo(() => applyFilters(scoped, filters), [scoped, filters]);
+  const ineligibleCount = useMemo(() => scoped.filter((r) => !isElegivelNps(r)).length, [scoped]);
 
   const summary = useMemo(() => summarizeNps(filtered), [filtered]);
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
@@ -166,6 +167,12 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
         />
         <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
       </div>
+
+      {ineligibleCount > 0 && (
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SectionCard title="NPS de serviço" subtitle="Faixas: crítico, aperfeiçoamento, qualidade, excelente">

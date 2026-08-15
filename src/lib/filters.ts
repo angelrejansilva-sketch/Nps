@@ -1,3 +1,4 @@
+import { normalizeKey } from "./text";
 import type { Filters, NpsResponse } from "./types";
 
 /** Grupos consolidados de segmento (Segmento_novo_2 do Power BI), calculados em segmento_consolidado. */
@@ -6,6 +7,36 @@ export const GOVCORP_SEGMENTOS = ["GOV", "CORP", "HASS GOV", "HASS CORP"];
 
 export function bySegmentoConsolidado(responses: NpsResponse[], grupo: string[]): NpsResponse[] {
   return responses.filter((r) => r.segmentoConsolidado !== null && grupo.includes(r.segmentoConsolidado));
+}
+
+/**
+ * Regras de elegibilidade pro NPS — chamados fora dessas listas não representam
+ * atendimento real de assistência técnica e distorcem os números.
+ * União das listas de filtrar_base.py e da especificação mais recente.
+ */
+const PROJETOS_EXCLUIR = new Set(
+  [
+    "H3-02956", "H3-03509", "H3-03229", "H3-03665", "H3-04145",
+    "H5-00120", "H5-00119", "H5-00132", "H3-03752", "H3-02621",
+    "H3-04035", "H5-00127",
+  ].map(normalizeKey)
+);
+
+// Segmento vazio/não sincronizado NÃO entra aqui de propósito — hoje isso costuma
+// significar só "falta reimportar o CSV de chamados", não um chamado inválido.
+const SEGMENTOS_EXCLUIR = new Set(
+  ["nao definido", "te-corpora", "te-governo", "te-varejo"].map(normalizeKey)
+);
+
+const MARCAS_PERMITIDAS = new Set(
+  ["2AM", "ACCEPT", "AGROSMART", "ANKER", "COMPAQ", "INFINIX", "OUTROS", "POSITIVO", "QUANTUM", "VAIO"].map(normalizeKey)
+);
+
+export function isElegivelNps(r: NpsResponse): boolean {
+  if (r.projeto && PROJETOS_EXCLUIR.has(normalizeKey(r.projeto))) return false;
+  if (SEGMENTOS_EXCLUIR.has(normalizeKey(r.segmento ?? ""))) return false;
+  if (r.marca && !MARCAS_PERMITIDAS.has(normalizeKey(r.marca))) return false;
+  return true;
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -41,6 +72,8 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
   const chamado = filters.chamado.trim().toLowerCase();
 
   return responses.filter((r) => {
+    if (!isElegivelNps(r)) return false;
+
     const date = r.dataChamado ?? r.createdAt;
 
     if (from && (!date || date < from)) return false;

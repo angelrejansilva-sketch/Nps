@@ -23,6 +23,7 @@ export interface NpsResponse {
   barebone: string | null;
   clienteUf: string | null;
   clienteNome: string | null;
+  projeto: string | null;
   segmentoConsolidado: string | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
