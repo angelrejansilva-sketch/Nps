@@ -5,13 +5,39 @@ import type { ChamadoRecord } from "@/lib/parseChamados";
 import { dbRowToNpsResponse, npsResponseToDbRow, type NpsResponseRow } from "./mapper";
 
 const PAGE_SIZE = 1000;
-const UPSERT_BATCH_SIZE = 500;
-const UPSERT_CONCURRENCY = 8;
+// Kept modest on purpose: Supabase enforces an 8s statement_timeout for the
+// authenticated role (project-wide, protects against runaway queries — not
+// something we should raise). Wide/heavily-indexed tables like nps_chamados
+// (63 columns, 6 indexes) can blow past that under concurrent load with
+// bigger batches, so batch size and concurrency both stay conservative.
+const UPSERT_BATCH_SIZE = 200;
+const UPSERT_CONCURRENCY = 4;
+const RETRY_ATTEMPTS = 3;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const batches: T[][] = [];
   for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
   return batches;
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: string; message?: string };
+  if (e.code === "57014") return true;
+  return typeof e.message === "string" && e.message.toLowerCase().includes("timeout");
+}
+
+/** Retries only on statement-timeout errors — upserts are idempotent, so a retry is safe. */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isTimeoutError(e) || attempt === RETRY_ATTEMPTS) throw e;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+  throw new Error("unreachable");
 }
 
 /** Runs `worker` over `batches` with at most `concurrency` in flight at once. */
@@ -24,7 +50,7 @@ async function runBatchesConcurrent<T>(
   async function runWorker() {
     while (next < batches.length) {
       const batch = batches[next++];
-      await worker(batch);
+      await withRetry(() => worker(batch));
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, runWorker));
