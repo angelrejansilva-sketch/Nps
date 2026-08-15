@@ -51,6 +51,13 @@ export const EMPTY_FILTERS: Filters = {
   search: "",
 };
 
+/** Filtros padrão ao abrir o painel: mês atual já selecionado (data do chamado). */
+export function defaultFilters(): Filters {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return { ...EMPTY_FILTERS, dateFrom: month, dateTo: month };
+}
+
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */
 function monthStart(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})$/);
@@ -87,7 +94,7 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
     }
 
     if (filters.segmentos.length > 0) {
-      const seg = r.segmento ?? "Não classificado";
+      const seg = r.segmentoConsolidado ?? "Não classificado";
       if (!filters.segmentos.includes(seg)) return false;
     }
 

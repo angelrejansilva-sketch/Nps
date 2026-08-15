@@ -2,9 +2,23 @@
 
 import type { Filters } from "@/lib/types";
 
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+/** Deriva ano/mês selecionados a partir de dateFrom/dateTo (formato "YYYY-MM"). */
+function parseYearMonth(filters: Filters): { year: string; month: string } {
+  if (!filters.dateFrom) return { year: "", month: "" };
+  const [y, m] = filters.dateFrom.split("-");
+  const isWholeYear = filters.dateFrom === `${y}-01` && filters.dateTo === `${y}-12`;
+  return { year: y, month: isWholeYear ? "" : m };
+}
+
 interface FilterBarProps {
   filters: Filters;
   onChange: (filters: Filters) => void;
+  yearOptions: number[];
   equipmentOptions: string[];
   segmentoOptions: string[];
   marcaOptions: string[];
@@ -16,6 +30,7 @@ interface FilterBarProps {
 export function FilterBar({
   filters,
   onChange,
+  yearOptions,
   equipmentOptions,
   segmentoOptions,
   marcaOptions,
@@ -23,29 +38,65 @@ export function FilterBar({
   modeloOptions,
   onReset,
 }: FilterBarProps) {
+  const { year, month } = parseYearMonth(filters);
+  const selectStyle = {
+    borderColor: "var(--border)",
+    background: "var(--surface-1)",
+    color: "var(--text-primary)",
+  };
+
+  function handleYearChange(newYear: string) {
+    if (!newYear) {
+      onChange({ ...filters, dateFrom: null, dateTo: null });
+      return;
+    }
+    onChange({ ...filters, dateFrom: `${newYear}-01`, dateTo: `${newYear}-12` });
+  }
+
+  function handleMonthChange(newMonth: string) {
+    if (!year) return;
+    if (!newMonth) {
+      onChange({ ...filters, dateFrom: `${year}-01`, dateTo: `${year}-12` });
+      return;
+    }
+    onChange({ ...filters, dateFrom: `${year}-${newMonth}`, dateTo: `${year}-${newMonth}` });
+  }
+
   return (
     <div
       className="flex flex-wrap items-end gap-4 rounded-xl border p-4"
       style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
     >
-      <Field label="De (mês/ano)">
-        <input
-          type="month"
-          value={filters.dateFrom ?? ""}
-          onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || null })}
-          className="rounded border px-2 py-1.5 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
-        />
-      </Field>
-
-      <Field label="Até (mês/ano)">
-        <input
-          type="month"
-          value={filters.dateTo ?? ""}
-          onChange={(e) => onChange({ ...filters, dateTo: e.target.value || null })}
-          className="rounded border px-2 py-1.5 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
-        />
+      <Field label="Período" className="min-w-[160px]">
+        <div className="flex flex-col gap-1">
+          <select
+            value={year}
+            onChange={(e) => handleYearChange(e.target.value)}
+            className="rounded border px-2 py-1.5 text-sm"
+            style={selectStyle}
+          >
+            <option value="">Todos os anos</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <select
+            value={month}
+            onChange={(e) => handleMonthChange(e.target.value)}
+            disabled={!year}
+            className="rounded border px-2 py-1.5 text-sm disabled:opacity-50"
+            style={selectStyle}
+          >
+            <option value="">Todos os meses</option>
+            {MONTH_NAMES.map((name, i) => (
+              <option key={name} value={String(i + 1).padStart(2, "0")}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
       </Field>
 
       <Field label="Equipamento" className="min-w-[200px]">

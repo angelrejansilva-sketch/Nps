@@ -25,6 +25,16 @@ export function summarizeNps(responses: NpsResponse[]): NpsSummary {
   return { nps, promoters, passives, detractors, validTotal };
 }
 
+/** Anos com pelo menos uma resposta na base — pra alimentar o seletor de Ano, mais recente primeiro. */
+export function availableYears(responses: NpsResponse[]): number[] {
+  const years = new Set<number>();
+  for (const r of responses) {
+    const date = r.dataChamado ?? r.createdAt;
+    if (date) years.add(date.getFullYear());
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
 export function responseRate(responses: NpsResponse[]): number | null {
   if (responses.length === 0) return null;
   const noResponse = responses.filter((r) => r.scoreStatus === "no_response").length;
@@ -116,6 +126,11 @@ export function bySegmento(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.segmento);
 }
 
+/** Segmento_novo_2 do Power BI — os 6 grupos combinados (VAREJO, CORP PLATAFORMA, GOV, CORP, HASS GOV, HASS CORP). */
+export function groupBySegmentoConsolidado(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.segmentoConsolidado);
+}
+
 export function byMarca(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.marca);
 }
@@ -134,6 +149,13 @@ export function byEstado(responses: NpsResponse[]): CategoryPoint[] {
 
 export function byCliente(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.clienteNome);
+}
+
+/** Tira as opções "sem dado" (não classificado / não informado) de listas de filtro — só mostra categorias reais e já combinadas. */
+const UNCLASSIFIED_LABELS = new Set(["Não classificado", "Não informado"]);
+
+export function optionLabels(points: CategoryPoint[]): string[] {
+  return points.map((p) => p.category).filter((c) => !UNCLASSIFIED_LABELS.has(c));
 }
 
 export function topByDetractors(points: CategoryPoint[], limit = 12): CategoryPoint[] {

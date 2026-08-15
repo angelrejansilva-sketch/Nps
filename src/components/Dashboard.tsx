@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { EMPTY_FILTERS, applyFilters, isElegivelNps } from "@/lib/filters";
+import { applyFilters, defaultFilters, isElegivelNps } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
+  availableYears,
   byBarebone,
   byEquipamentoOficial,
   byEquipmentCategory,
   byMarca,
   byMotivo,
   bySegmento,
+  groupBySegmentoConsolidado,
   monthlyTrend,
+  optionLabels,
   resolutionRate,
   responseRate,
   summarizeNps,
@@ -60,11 +63,12 @@ export function Dashboard() {
   const produtoStats = useProdutoStats();
   const produtosImport = useProdutosImport(profile?.id, produtoStats.reload);
 
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => defaultFilters());
   const [showImport, setShowImport] = useState(false);
 
   const filtered = useMemo(() => applyFilters(responses, filters), [responses, filters]);
-  const ineligibleCount = useMemo(() => responses.filter((r) => !isElegivelNps(r)).length, [responses]);
+  const eligibleResponses = useMemo(() => responses.filter(isElegivelNps), [responses]);
+  const ineligibleCount = useMemo(() => responses.length - eligibleResponses.length, [responses, eligibleResponses]);
 
   const summary = useMemo(() => summarizeNps(filtered), [filtered]);
   const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
@@ -81,17 +85,24 @@ export function Dashboard() {
 
   const aiSummary = useMemo(() => buildAiDataSummary(filtered, responses.length), [filtered, responses.length]);
 
-  const equipmentOptions = useMemo(() => byEquipmentCategory(responses).map((c) => c.category), [responses]);
-  const segmentoOptions = useMemo(() => bySegmento(responses).map((c) => c.category), [responses]);
+  const yearOptions = useMemo(() => availableYears(responses), [responses]);
+  const equipmentOptions = useMemo(() => optionLabels(byEquipmentCategory(eligibleResponses)), [eligibleResponses]);
+  const segmentoOptions = useMemo(
+    () => optionLabels(groupBySegmentoConsolidado(eligibleResponses)),
+    [eligibleResponses]
+  );
   const marcaOptions = useMemo(() => byMarca(responses).map((c) => c.category), [responses]);
-  const tipoProdutoOptions = useMemo(() => byEquipamentoOficial(responses).map((c) => c.category), [responses]);
+  const tipoProdutoOptions = useMemo(
+    () => optionLabels(byEquipamentoOficial(eligibleResponses)),
+    [eligibleResponses]
+  );
   const modeloOptions = useMemo(() => {
     const scoped =
       filters.tiposProduto.length > 0
-        ? responses.filter((r) => filters.tiposProduto.includes(r.equipamentoOficial ?? "Não classificado"))
-        : responses;
-    return byBarebone(scoped).map((c) => c.category);
-  }, [responses, filters.tiposProduto]);
+        ? eligibleResponses.filter((r) => filters.tiposProduto.includes(r.equipamentoOficial ?? "Não classificado"))
+        : eligibleResponses;
+    return optionLabels(byBarebone(scoped));
+  }, [eligibleResponses, filters.tiposProduto]);
 
   if (authLoading) {
     return (
@@ -232,12 +243,13 @@ export function Dashboard() {
       <FilterBar
         filters={filters}
         onChange={setFilters}
+        yearOptions={yearOptions}
         equipmentOptions={equipmentOptions}
         segmentoOptions={segmentoOptions}
         marcaOptions={marcaOptions}
         tipoProdutoOptions={tipoProdutoOptions}
         modeloOptions={modeloOptions}
-        onReset={() => setFilters(EMPTY_FILTERS)}
+        onReset={() => setFilters(defaultFilters())}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
