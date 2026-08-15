@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { applyFilters, bySegmentoConsolidado, defaultFilters } from "@/lib/filters";
+import { applyFilters, bySegmentoConsolidado, defaultFilters, type DateRole } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
@@ -38,9 +38,17 @@ interface SegmentDashboardProps {
   subtitle: string;
   segmentGroup: string[];
   showClienteRanking?: boolean;
+  /** Data usada para escopar a "população" de chamados no período (Pesquisas enviadas, estado). Padrão: data_chamado. */
+  populationDateRole?: DateRole;
 }
 
-export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRanking }: SegmentDashboardProps) {
+export function SegmentDashboard({
+  title,
+  subtitle,
+  segmentGroup,
+  showClienteRanking,
+  populationDateRole = "chamado",
+}: SegmentDashboardProps) {
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
 
@@ -58,9 +66,10 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
     modeloOptions,
   } = useDashboardFilters(scoped);
 
-  // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, estado.
+  // População de chamados no período (pesquisas enviadas, estado) — data_chamado por padrão,
+  // FT (Fechamento Técnico) em CORP PLATAFORMA.
   // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
-  const filtered = useMemo(() => applyFilters(scoped, filters, "chamado"), [scoped, filters]);
+  const filtered = useMemo(() => applyFilters(scoped, filters, populationDateRole), [scoped, filters, populationDateRole]);
   const filteredByResposta = useMemo(() => applyFilters(scoped, filters, "resposta"), [scoped, filters]);
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 

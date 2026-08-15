@@ -59,14 +59,16 @@ export function defaultFilters(): Filters {
 }
 
 /**
- * data_chamado (FT/data prevista) e a data de criação da resposta não são a mesma coisa —
+ * data_chamado, created_at (resposta) e FT (Fechamento Técnico) não são a mesma coisa —
  * um chamado pode ter data_chamado no futuro em relação a quando a pesquisa foi respondida.
- * "chamado" período por data_chamado (população de chamados no período);
- * "resposta" período por created_at (quando a pesquisa foi de fato respondida).
+ * "chamado" período por data_chamado (população de chamados no período, padrão);
+ * "resposta" período por created_at (quando a pesquisa foi de fato respondida);
+ * "ft" período pelo Fechamento Técnico do chamado — usado só em CORP PLATAFORMA.
  */
-export type DateRole = "chamado" | "resposta";
+export type DateRole = "chamado" | "resposta" | "ft";
 
 export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
+  if (role === "ft") return r.ftDate ?? r.dataChamado ?? r.createdAt;
   return role === "resposta" ? (r.createdAt ?? r.dataChamado) : (r.dataChamado ?? r.createdAt);
 }
 

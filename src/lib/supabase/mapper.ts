@@ -1,5 +1,5 @@
 import { categorizeEquipment } from "@/lib/classify";
-import { parseScore } from "@/lib/normalize";
+import { parseFlexibleDate, parseScore } from "@/lib/normalize";
 import type { NpsResponse, QualityIssue } from "@/lib/types";
 
 export interface NpsResponseRow {
@@ -18,6 +18,7 @@ export interface NpsResponseRow {
   cliente_nome: string | null;
   projeto: string | null;
   ct: string | null;
+  ft: string | null;
   segmento_consolidado: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
@@ -62,6 +63,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     clienteNome: row.cliente_nome,
     projeto: row.projeto,
     ct: row.ct,
+    ftDate: row.ft ? parseFlexibleDate(row.ft) : null,
     segmentoConsolidado: row.segmento_consolidado,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
@@ -95,6 +97,7 @@ export function npsResponseToDbRow(
   | "cliente_nome"
   | "projeto"
   | "ct"
+  | "ft"
   | "segmento_consolidado"
 > & {
   score_status: string;

@@ -25,6 +25,7 @@ export interface NpsResponse {
   clienteNome: string | null;
   projeto: string | null;
   ct: string | null;
+  ftDate: Date | null;
   segmentoConsolidado: string | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;

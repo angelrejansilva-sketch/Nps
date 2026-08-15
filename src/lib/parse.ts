@@ -66,6 +66,7 @@ function toRow(raw: RawRow, index: number): NpsResponse {
     clienteNome: null,
     projeto: null,
     ct: null,
+    ftDate: null,
     segmentoConsolidado: null,
     problemaSolucionado: parseProblemaSolucionado(raw.problema_solucionado ?? ""),
     score,
