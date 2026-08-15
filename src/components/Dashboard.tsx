@@ -40,6 +40,7 @@ import { ResponseTable } from "./ResponseTable";
 import { SectionCard } from "./SectionCard";
 import { SegmentNav } from "./SegmentNav";
 import { SegmentoUpload } from "./SegmentoUpload";
+import { Sidebar } from "./Sidebar";
 import { NpsTrendChart, VolumeTrendChart } from "./TrendCharts";
 
 export function Dashboard() {
@@ -127,16 +128,11 @@ export function Dashboard() {
       <header className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentNav />
-          <div className="flex gap-2">
-            {canManageData && (
-              <Button variant="primary" onClick={() => setShowImport((s) => !s)}>
-                {showImport ? "Fechar importação" : "Atualizar base"}
-              </Button>
-            )}
-            <Button variant="ghost" onClick={signOut}>
-              Sair
+          {canManageData && (
+            <Button variant="primary" onClick={() => setShowImport((s) => !s)}>
+              {showImport ? "Fechar importação" : "Atualizar base"}
             </Button>
-          </div>
+          )}
         </div>
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -148,7 +144,6 @@ export function Dashboard() {
                 ? `Carregando respostas… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
                 : "Carregando respostas…"
               : `${formatNumber(responses.length)} respostas na base`}
-            {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
         </div>
       </header>
@@ -220,123 +215,139 @@ export function Dashboard() {
         </div>
       )}
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        yearOptions={yearOptions}
-        equipmentOptions={equipmentOptions}
-        segmentoOptions={segmentoOptions}
-        marcaOptions={marcaOptions}
-        tipoProdutoOptions={tipoProdutoOptions}
-        modeloOptions={modeloOptions}
-        onReset={() => setFilters(defaultFilters())}
-      />
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard
-          label="NPS"
-          value={formatNps(summary.nps)}
-          sublabel={`${formatNumber(summary.validTotal)} respostas válidas`}
-          tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
-        />
-        <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
-        <KpiCard label="Taxa de resolução" value={formatPercent(resRate)} sublabel="problema resolvido" />
-        <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
-        <KpiCard label="Satisfação ATP" value={avgSatisfacao !== null ? avgSatisfacao.toFixed(1) : "—"} sublabel="média 1-5" />
-        <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(responses.length)} na base`} />
-      </div>
-
-      {ineligibleCount > 0 && (
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
-        </p>
-      )}
-
-      <SectionCard title="Distribuição" subtitle="Promotores, neutros e detratores no período filtrado">
-        <DistributionBar summary={summary} />
-      </SectionCard>
-
-      <SectionCard
-        title="Análise por IA"
-        subtitle="Pergunte sobre os dados filtrados acima — respostas geradas com base nos números do painel"
-      >
-        <AiAnalysis summary={aiSummary} />
-      </SectionCard>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="Evolução do NPS" subtitle="Por mês da resposta">
-          <NpsTrendChart data={trend} />
-        </SectionCard>
-        <SectionCard title="Volume de respostas" subtitle="Por mês da resposta">
-          <VolumeTrendChart data={trend} />
-        </SectionCard>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <SectionCard title="NPS por equipamento" subtitle="Top 12 categorias por volume de respostas">
-          <EquipmentRanking data={equipmentRanking} />
-        </SectionCard>
-        <SectionCard
-          title="NPS por segmento"
-          subtitle="Varejo / Governo / Corporativo — importe o mapa de chamados para preencher"
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <Sidebar
+          userName={profile?.full_name ?? profile?.email ?? "Usuário"}
+          userEmail={profile?.email}
+          onSignOut={signOut}
+          stats={[
+            { label: "Total no filtro", value: formatNumber(filtered.length) },
+            { label: "Respostas válidas", value: formatNumber(summary.validTotal) },
+            { label: "Taxa de resposta", value: formatPercent(respRate) },
+            { label: "NPS", value: formatNps(summary.nps) },
+          ]}
         >
-          <EquipmentRanking data={segmentoRanking} />
-        </SectionCard>
-        <SectionCard
-          title="Motivo da nota"
-          subtitle="Ordenado pela maior taxa de detratores — onde agir primeiro"
-        >
-          <MotivoBreakdown data={motivoRanking} />
-        </SectionCard>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="NPS por marca" subtitle="Marca oficial (Chamados Encerrados) — importe o mapa de chamados para preencher">
-          <EquipmentRanking data={marcaRanking} />
-        </SectionCard>
-        <SectionCard
-          title="NPS por modelo (barebone)"
-          subtitle="Ex: VAIO TL10 — modelo oficial do chamado, top 12 por volume"
-        >
-          <EquipmentRanking data={bareboneRanking} />
-        </SectionCard>
-      </div>
-
-      {produtoStats.stats && produtoStats.stats.total > 0 && (
-        <SectionCard
-          title="Catálogo de produtos"
-          subtitle="Categoria e fabricante oficiais, do cadastro base_de_produto — referência para classificar equipamentos"
-        >
-          <ProdutoCatalog
-            total={produtoStats.stats.total}
-            byEquipamento={produtoStats.stats.byEquipamento}
-            byFabricante={produtoStats.stats.byFabricante}
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            yearOptions={yearOptions}
+            equipmentOptions={equipmentOptions}
+            segmentoOptions={segmentoOptions}
+            marcaOptions={marcaOptions}
+            tipoProdutoOptions={tipoProdutoOptions}
+            modeloOptions={modeloOptions}
+            onReset={() => setFilters(defaultFilters())}
           />
-        </SectionCard>
-      )}
+        </Sidebar>
 
-      <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-        <CommentsExplorer responses={filteredByResposta} />
-      </SectionCard>
+        <main className="flex min-w-0 flex-1 flex-col gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <KpiCard
+              label="NPS"
+              value={formatNps(summary.nps)}
+              sublabel={`${formatNumber(summary.validTotal)} respostas válidas`}
+              tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
+            />
+            <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
+            <KpiCard label="Taxa de resolução" value={formatPercent(resRate)} sublabel="problema resolvido" />
+            <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
+            <KpiCard label="Satisfação ATP" value={avgSatisfacao !== null ? avgSatisfacao.toFixed(1) : "—"} sublabel="média 1-5" />
+            <KpiCard label="Total no filtro" value={formatNumber(filtered.length)} sublabel={`de ${formatNumber(responses.length)} na base`} />
+          </div>
 
-      <SectionCard
-        title="Qualidade dos dados"
-        subtitle="Transparência sobre o que foi incluído, excluído e por quê"
-      >
-        <DataQualityPanel quality={quality} />
-      </SectionCard>
+          {ineligibleCount > 0 && (
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
+            </p>
+          )}
 
-      <SectionCard
-        title="Respostas individuais"
-        subtitle="Todas as respostas no filtro atual — use para acompanhar detratores"
-        action={
-          <Button variant="secondary" onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filteredByResposta))}>
-            Exportar CSV ({filteredByResposta.length})
-          </Button>
-        }
-      >
-        <ResponseTable responses={filteredByResposta} />
-      </SectionCard>
+          <SectionCard title="Distribuição" subtitle="Promotores, neutros e detratores no período filtrado">
+            <DistributionBar summary={summary} />
+          </SectionCard>
+
+          <SectionCard
+            title="Análise por IA"
+            subtitle="Pergunte sobre os dados filtrados acima — respostas geradas com base nos números do painel"
+          >
+            <AiAnalysis summary={aiSummary} />
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard title="Evolução do NPS" subtitle="Por mês da resposta">
+              <NpsTrendChart data={trend} />
+            </SectionCard>
+            <SectionCard title="Volume de respostas" subtitle="Por mês da resposta">
+              <VolumeTrendChart data={trend} />
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <SectionCard title="NPS por equipamento" subtitle="Top 12 categorias por volume de respostas">
+              <EquipmentRanking data={equipmentRanking} />
+            </SectionCard>
+            <SectionCard
+              title="NPS por segmento"
+              subtitle="Varejo / Governo / Corporativo — importe o mapa de chamados para preencher"
+            >
+              <EquipmentRanking data={segmentoRanking} />
+            </SectionCard>
+            <SectionCard
+              title="Motivo da nota"
+              subtitle="Ordenado pela maior taxa de detratores — onde agir primeiro"
+            >
+              <MotivoBreakdown data={motivoRanking} />
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard title="NPS por marca" subtitle="Marca oficial (Chamados Encerrados) — importe o mapa de chamados para preencher">
+              <EquipmentRanking data={marcaRanking} />
+            </SectionCard>
+            <SectionCard
+              title="NPS por modelo (barebone)"
+              subtitle="Ex: VAIO TL10 — modelo oficial do chamado, top 12 por volume"
+            >
+              <EquipmentRanking data={bareboneRanking} />
+            </SectionCard>
+          </div>
+
+          {produtoStats.stats && produtoStats.stats.total > 0 && (
+            <SectionCard
+              title="Catálogo de produtos"
+              subtitle="Categoria e fabricante oficiais, do cadastro base_de_produto — referência para classificar equipamentos"
+            >
+              <ProdutoCatalog
+                total={produtoStats.stats.total}
+                byEquipamento={produtoStats.stats.byEquipamento}
+                byFabricante={produtoStats.stats.byFabricante}
+              />
+            </SectionCard>
+          )}
+
+          <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
+            <CommentsExplorer responses={filteredByResposta} />
+          </SectionCard>
+
+          <SectionCard
+            title="Qualidade dos dados"
+            subtitle="Transparência sobre o que foi incluído, excluído e por quê"
+          >
+            <DataQualityPanel quality={quality} />
+          </SectionCard>
+
+          <SectionCard
+            title="Respostas individuais"
+            subtitle="Todas as respostas no filtro atual — use para acompanhar detratores"
+            action={
+              <Button variant="secondary" onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filteredByResposta))}>
+                Exportar CSV ({filteredByResposta.length})
+              </Button>
+            }
+          >
+            <ResponseTable responses={filteredByResposta} />
+          </SectionCard>
+        </main>
+      </div>
     </div>
   );
 }

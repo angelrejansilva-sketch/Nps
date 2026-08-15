@@ -19,7 +19,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
-import { Button } from "./Button";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { CountRanking } from "./CountRanking";
 import { EquipmentRanking } from "./EquipmentRanking";
@@ -31,6 +30,7 @@ import { ResolutionBar } from "./ResolutionBar";
 import { ScoreHistogram } from "./ScoreHistogram";
 import { SectionCard } from "./SectionCard";
 import { SegmentNav } from "./SegmentNav";
+import { Sidebar } from "./Sidebar";
 import { NpsTrendChart } from "./TrendCharts";
 
 interface SegmentDashboardProps {
@@ -109,12 +109,7 @@ export function SegmentDashboard({
   return (
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <header className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SegmentNav />
-          <Button variant="ghost" onClick={signOut}>
-            Sair
-          </Button>
-        </div>
+        <SegmentNav />
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             {title}
@@ -125,14 +120,12 @@ export function SegmentDashboard({
                 ? `Carregando respostas… ${formatNumber(loadProgress.done)}/${formatNumber(loadProgress.total)}`
                 : "Carregando respostas…"
               : `${formatNumber(scoped.length)} respostas no segmento`}
-            {profile && ` · ${profile.full_name ?? profile.email}`}
+          </p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {subtitle}
           </p>
         </div>
       </header>
-
-      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-        {subtitle}
-      </p>
 
       {error && (
         <div
@@ -143,78 +136,94 @@ export function SegmentDashboard({
         </div>
       )}
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        yearOptions={yearOptions}
-        equipmentOptions={equipmentOptions}
-        segmentoOptions={segmentoOptions}
-        marcaOptions={marcaOptions}
-        tipoProdutoOptions={tipoProdutoOptions}
-        modeloOptions={modeloOptions}
-        onReset={() => setFilters(defaultFilters())}
-      />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <Sidebar
+          userName={profile?.full_name ?? profile?.email ?? "Usuário"}
+          userEmail={profile?.email}
+          onSignOut={signOut}
+          stats={[
+            { label: "Pesquisas enviadas", value: formatNumber(filtered.length) },
+            { label: "Respostas válidas", value: formatNumber(summary.validTotal) },
+            { label: "Taxa de resposta", value: formatPercent(respRate) },
+            { label: "NPS de serviço", value: formatNps(summary.nps) },
+          ]}
+        >
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            yearOptions={yearOptions}
+            equipmentOptions={equipmentOptions}
+            segmentoOptions={segmentoOptions}
+            marcaOptions={marcaOptions}
+            tipoProdutoOptions={tipoProdutoOptions}
+            modeloOptions={modeloOptions}
+            onReset={() => setFilters(defaultFilters())}
+          />
+        </Sidebar>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
-        <KpiCard label="Respostas válidas" value={formatNumber(summary.validTotal)} sublabel="nota de 0 a 10" />
-        <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
-        <KpiCard label="Não respondidos" value={formatNumber(quality.noResponse)} sublabel="sem nota" />
-        <KpiCard
-          label="NPS de serviço"
-          value={formatNps(summary.nps)}
-          tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
-        />
-        <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
-      </div>
+        <main className="flex min-w-0 flex-1 flex-col gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
+            <KpiCard label="Respostas válidas" value={formatNumber(summary.validTotal)} sublabel="nota de 0 a 10" />
+            <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
+            <KpiCard label="Não respondidos" value={formatNumber(quality.noResponse)} sublabel="sem nota" />
+            <KpiCard
+              label="NPS de serviço"
+              value={formatNps(summary.nps)}
+              tone={summary.nps === null ? "neutral" : summary.nps < 0 ? "critical" : summary.nps < 50 ? "warning" : "good"}
+            />
+            <KpiCard label="Avaliação do produto" value={avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—"} sublabel="média 0-10" />
+          </div>
 
-      {ineligibleCount > 0 && (
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
-        </p>
-      )}
+          {ineligibleCount > 0 && (
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {formatNumber(ineligibleCount)} chamados de fora do escopo do NPS (projeto, segmento ou marca excluídos das regras de elegibilidade) não entram em nenhum número acima.
+            </p>
+          )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="NPS de serviço" subtitle="Faixas: crítico, aperfeiçoamento, qualidade, excelente">
-          <NpsGauge summary={summary} />
-        </SectionCard>
-        <SectionCard title="NPS por mês" subtitle="Evolução mensal por data da resposta">
-          <NpsTrendChart data={trend} />
-        </SectionCard>
-      </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard title="NPS de serviço" subtitle="Faixas: crítico, aperfeiçoamento, qualidade, excelente">
+              <NpsGauge summary={summary} />
+            </SectionCard>
+            <SectionCard title="NPS por mês" subtitle="Evolução mensal por data da resposta">
+              <NpsTrendChart data={trend} />
+            </SectionCard>
+          </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="Distribuição das notas 0-10" subtitle="Somente respostas válidas">
-          <ScoreHistogram data={scoreDist} />
-        </SectionCard>
-        <SectionCard title="Problema solucionado" subtitle="Chamados distintos por resposta">
-          <ResolutionBar responses={filteredByResposta} />
-        </SectionCard>
-      </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard title="Distribuição das notas 0-10" subtitle="Somente respostas válidas">
+              <ScoreHistogram data={scoreDist} />
+            </SectionCard>
+            <SectionCard title="Problema solucionado" subtitle="Chamados distintos por resposta">
+              <ResolutionBar responses={filteredByResposta} />
+            </SectionCard>
+          </div>
 
-      {showClienteRanking && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SectionCard title="Promotores por cliente" subtitle="Top 12, maior volume primeiro">
-            <CountRanking data={promotersByCliente} color="var(--status-good)" />
+          {showClienteRanking && (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <SectionCard title="Promotores por cliente" subtitle="Top 12, maior volume primeiro">
+                <CountRanking data={promotersByCliente} color="var(--status-good)" />
+              </SectionCard>
+              <SectionCard title="Detratores por cliente" subtitle="Top 12, maior volume primeiro">
+                <CountRanking data={detractorsByCliente} color="var(--status-critical)" />
+              </SectionCard>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard title="Motivo da nota" subtitle="Ordenado pela maior taxa de detratores">
+              <MotivoBreakdown data={motivoRanking} />
+            </SectionCard>
+            <SectionCard title="NPS por estado" subtitle="UF do cliente — precisa do CSV de Chamados Encerrados importado">
+              <EquipmentRanking data={estadoRanking} />
+            </SectionCard>
+          </div>
+
+          <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
+            <CommentsExplorer responses={filteredByResposta} />
           </SectionCard>
-          <SectionCard title="Detratores por cliente" subtitle="Top 12, maior volume primeiro">
-            <CountRanking data={detractorsByCliente} color="var(--status-critical)" />
-          </SectionCard>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="Motivo da nota" subtitle="Ordenado pela maior taxa de detratores">
-          <MotivoBreakdown data={motivoRanking} />
-        </SectionCard>
-        <SectionCard title="NPS por estado" subtitle="UF do cliente — precisa do CSV de Chamados Encerrados importado">
-          <EquipmentRanking data={estadoRanking} />
-        </SectionCard>
+        </main>
       </div>
-
-      <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-        <CommentsExplorer responses={filteredByResposta} />
-      </SectionCard>
     </div>
   );
 }
