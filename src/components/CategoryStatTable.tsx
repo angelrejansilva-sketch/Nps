@@ -17,11 +17,14 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "avgAvaliacao", label: "Avaliação" },
 ];
 
-interface ClienteTableProps {
+interface CategoryStatTableProps {
   data: ClienteStat[];
+  categoryLabel: string;
+  searchPlaceholder: string;
+  emptyLabel: string;
 }
 
-export function ClienteTable({ data }: ClienteTableProps) {
+export function CategoryStatTable({ data, categoryLabel, searchPlaceholder, emptyLabel }: CategoryStatTableProps) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("validTotal");
   const [sortDesc, setSortDesc] = useState(true);
@@ -60,7 +63,7 @@ export function ClienteTable({ data }: ClienteTableProps) {
     <div className="flex flex-col gap-3">
       <input
         type="text"
-        placeholder="Buscar cliente…"
+        placeholder={searchPlaceholder}
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -74,7 +77,7 @@ export function ClienteTable({ data }: ClienteTableProps) {
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr style={{ background: "var(--surface-2)" }}>
-              <Th>Cliente</Th>
+              <Th>{categoryLabel}</Th>
               {COLUMNS.map((col) => (
                 <Th key={col.key} onClick={() => toggleSort(col.key)} active={sortKey === col.key} desc={sortDesc}>
                   {col.label}
@@ -96,7 +99,7 @@ export function ClienteTable({ data }: ClienteTableProps) {
             {pageRows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center" style={{ color: "var(--text-muted)" }}>
-                  Nenhum cliente encontrado.
+                  {emptyLabel}
                 </td>
               </tr>
             )}
@@ -107,7 +110,7 @@ export function ClienteTable({ data }: ClienteTableProps) {
       <div className="flex items-center justify-between text-sm" style={{ color: "var(--text-muted)" }}>
         <span>
           {sorted.length === 0
-            ? "0 clientes"
+            ? "0 registros"
             : `${pageClamped * PAGE_SIZE + 1}–${Math.min((pageClamped + 1) * PAGE_SIZE, sorted.length)} de ${sorted.length}`}
         </span>
         <div className="flex gap-2">

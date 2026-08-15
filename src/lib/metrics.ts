@@ -148,6 +148,10 @@ export function byEstado(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.clienteUf);
 }
 
+export function byCt(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => r.ct);
+}
+
 export function byCliente(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.clienteNome);
 }
@@ -156,14 +160,15 @@ export interface ClienteStat extends CategoryPoint {
   avgAvaliacao: number | null;
 }
 
-/** Estatísticas por cliente para a tela de Análise por Cliente — nada de "Não classificado". */
-export function clienteStats(responses: NpsResponse[]): ClienteStat[] {
+/** Agrupa por uma chave (cliente, CT, ...) com respostas/NPS/avaliação média — nada de "Não classificado". */
+function statsByKey(responses: NpsResponse[], keyFn: (r: NpsResponse) => string | null): ClienteStat[] {
   const buckets = new Map<string, NpsResponse[]>();
   for (const r of responses) {
-    if (!r.clienteNome) continue;
-    const list = buckets.get(r.clienteNome) ?? [];
+    const key = keyFn(r);
+    if (!key) continue;
+    const list = buckets.get(key) ?? [];
     list.push(r);
-    buckets.set(r.clienteNome, list);
+    buckets.set(key, list);
   }
   return [...buckets.entries()]
     .map(([category, list]) => ({
@@ -172,6 +177,16 @@ export function clienteStats(responses: NpsResponse[]): ClienteStat[] {
       avgAvaliacao: averageOf(list.map((r) => r.avaliacaoProduto)),
     }))
     .sort((a, b) => b.validTotal - a.validTotal);
+}
+
+/** Estatísticas por cliente para a tela de Análise por Cliente. */
+export function clienteStats(responses: NpsResponse[]): ClienteStat[] {
+  return statsByKey(responses, (r) => r.clienteNome);
+}
+
+/** Estatísticas por Centro de Trabalho para a tela de Análise por CT. */
+export function ctStats(responses: NpsResponse[]): ClienteStat[] {
+  return statsByKey(responses, (r) => r.ct);
 }
 
 /** Tira as opções "sem dado" (não classificado / não informado) de listas de filtro — só mostra categorias reais e já combinadas. */

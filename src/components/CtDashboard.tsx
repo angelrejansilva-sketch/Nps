@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { applyFilters, defaultFilters } from "@/lib/filters";
 import { formatNps, formatNumber } from "@/lib/format";
-import { averageOf, clienteStats, summarizeNps } from "@/lib/metrics";
+import { averageOf, ctStats, summarizeNps } from "@/lib/metrics";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
@@ -14,7 +14,7 @@ import { KpiCard } from "./KpiCard";
 import { SectionCard } from "./SectionCard";
 import { SegmentNav } from "./SegmentNav";
 
-export function ClienteDashboard() {
+export function CtDashboard() {
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
 
@@ -30,7 +30,7 @@ export function ClienteDashboard() {
   } = useDashboardFilters(responses);
 
   // "chamado": população de chamados no período — pesquisas enviadas.
-  // "resposta": quando a pesquisa foi de fato respondida — NPS, avaliação por cliente.
+  // "resposta": quando a pesquisa foi de fato respondida — NPS, avaliação por CT.
   const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
   const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
 
@@ -39,7 +39,7 @@ export function ClienteDashboard() {
     () => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)),
     [filteredByResposta]
   );
-  const clientes = useMemo(() => clienteStats(filteredByResposta), [filteredByResposta]);
+  const cts = useMemo(() => ctStats(filteredByResposta), [filteredByResposta]);
 
   if (authLoading) {
     return (
@@ -60,7 +60,7 @@ export function ClienteDashboard() {
         </div>
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-            Análise por Cliente
+            Análise por CT
           </h1>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             {dataLoading
@@ -95,7 +95,7 @@ export function ClienteDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Clientes" value={formatNumber(clientes.length)} sublabel="com resposta no filtro" />
+        <KpiCard label="Centros de Trabalho" value={formatNumber(cts.length)} sublabel="com resposta no filtro" />
         <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
         <KpiCard
           label="NPS geral"
@@ -106,14 +106,14 @@ export function ClienteDashboard() {
       </div>
 
       <SectionCard
-        title="Clientes"
-        subtitle="Clique nas colunas para ordenar — busque por nome para achar um cliente específico"
+        title="Centros de Trabalho"
+        subtitle="Clique nas colunas para ordenar — busque por CT para achar um específico"
       >
         <CategoryStatTable
-          data={clientes}
-          categoryLabel="Cliente"
-          searchPlaceholder="Buscar cliente…"
-          emptyLabel="Nenhum cliente encontrado."
+          data={cts}
+          categoryLabel="CT"
+          searchPlaceholder="Buscar CT…"
+          emptyLabel="Nenhum Centro de Trabalho encontrado."
         />
       </SectionCard>
     </div>

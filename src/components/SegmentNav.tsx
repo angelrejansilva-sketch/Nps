@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/varejo", label: "Varejo" },
   { href: "/governo-corporativo", label: "Governo/Corporativo" },
   { href: "/clientes", label: "Por Cliente" },
+  { href: "/ct", label: "Por CT" },
 ];
 
 export function SegmentNav() {
