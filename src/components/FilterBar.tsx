@@ -1,6 +1,7 @@
 "use client";
 
 import type { Filters } from "@/lib/types";
+import { Button } from "./Button";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -232,13 +233,9 @@ export function FilterBar({
         />
       </Field>
 
-      <button
-        onClick={onReset}
-        className="rounded border px-3 py-1.5 text-sm font-medium"
-        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-      >
+      <Button variant="ghost" onClick={onReset}>
         Limpar filtros
-      </button>
+      </Button>
     </div>
   );
 }

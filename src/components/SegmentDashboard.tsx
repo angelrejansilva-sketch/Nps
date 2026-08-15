@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { applyFilters, bySegmentoConsolidado, defaultFilters, isElegivelNps } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
@@ -27,6 +26,7 @@ import {
 import type { Filters } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useNpsData } from "@/hooks/useNpsData";
+import { Button } from "./Button";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { CountRanking } from "./CountRanking";
 import { EquipmentRanking } from "./EquipmentRanking";
@@ -37,6 +37,7 @@ import { NpsGauge } from "./NpsGauge";
 import { ResolutionBar } from "./ResolutionBar";
 import { ScoreHistogram } from "./ScoreHistogram";
 import { SectionCard } from "./SectionCard";
+import { SegmentNav } from "./SegmentNav";
 import { NpsTrendChart } from "./TrendCharts";
 
 interface SegmentDashboardProps {
@@ -53,20 +54,29 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
   const [filters, setFilters] = useState<Filters>(() => defaultFilters());
 
   const scoped = useMemo(() => bySegmentoConsolidado(responses, segmentGroup), [responses, segmentGroup]);
-  const filtered = useMemo(() => applyFilters(scoped, filters), [scoped, filters]);
+  // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, estado.
+  // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
+  const filtered = useMemo(() => applyFilters(scoped, filters, "chamado"), [scoped, filters]);
+  const filteredByResposta = useMemo(() => applyFilters(scoped, filters, "resposta"), [scoped, filters]);
   const eligibleScoped = useMemo(() => scoped.filter(isElegivelNps), [scoped]);
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
-  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
-  const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
-  const scoreDist = useMemo(() => byScore(filtered), [filtered]);
-  const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
+  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
+  const trend = useMemo(() => monthlyTrend(filteredByResposta, "resposta"), [filteredByResposta]);
+  const scoreDist = useMemo(() => byScore(filteredByResposta), [filteredByResposta]);
+  const motivoRanking = useMemo(() => byMotivo(filteredByResposta), [filteredByResposta]);
   const estadoRanking = useMemo(() => byEstado(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
-  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
+  const avgAvaliacao = useMemo(
+    () => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)),
+    [filteredByResposta]
+  );
 
-  const clientePoints = useMemo(() => (showClienteRanking ? byCliente(filtered) : []), [filtered, showClienteRanking]);
+  const clientePoints = useMemo(
+    () => (showClienteRanking ? byCliente(filteredByResposta) : []),
+    [filteredByResposta, showClienteRanking]
+  );
   const promotersByCliente = useMemo(
     () => topByPromoters(clientePoints).map((p) => ({ category: p.category, value: p.promoters })),
     [clientePoints]
@@ -105,21 +115,14 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
 
   return (
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SegmentNav />
+          <Button variant="ghost" onClick={signOut}>
+            Sair
+          </Button>
+        </div>
         <div>
-          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-            <Link href="/" className="underline">
-              Painel geral
-            </Link>
-            <span>·</span>
-            <Link href="/varejo" className="underline">
-              Varejo
-            </Link>
-            <span>·</span>
-            <Link href="/governo-corporativo" className="underline">
-              Governo/Corporativo
-            </Link>
-          </div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             {title}
           </h1>
@@ -132,13 +135,6 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
             {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
         </div>
-        <button
-          onClick={signOut}
-          className="rounded border px-3 py-1.5 text-sm font-medium"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-        >
-          Sair
-        </button>
       </header>
 
       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -189,7 +185,7 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
         <SectionCard title="NPS de serviço" subtitle="Faixas: crítico, aperfeiçoamento, qualidade, excelente">
           <NpsGauge summary={summary} />
         </SectionCard>
-        <SectionCard title="NPS por mês" subtitle="Evolução mensal">
+        <SectionCard title="NPS por mês" subtitle="Evolução mensal por data da resposta">
           <NpsTrendChart data={trend} />
         </SectionCard>
       </div>
@@ -199,7 +195,7 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
           <ScoreHistogram data={scoreDist} />
         </SectionCard>
         <SectionCard title="Problema solucionado" subtitle="Chamados distintos por resposta">
-          <ResolutionBar responses={filtered} />
+          <ResolutionBar responses={filteredByResposta} />
         </SectionCard>
       </div>
 
@@ -224,7 +220,7 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
       </div>
 
       <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-        <CommentsExplorer responses={filtered} />
+        <CommentsExplorer responses={filteredByResposta} />
       </SectionCard>
     </div>
   );

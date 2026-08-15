@@ -1,3 +1,4 @@
+import { dateForRole, type DateRole } from "./filters";
 import type { NpsResponse } from "./types";
 
 export interface NpsSummary {
@@ -60,11 +61,11 @@ export interface MonthlyPoint extends NpsSummary {
   label: string;
 }
 
-export function monthlyTrend(responses: NpsResponse[]): MonthlyPoint[] {
+export function monthlyTrend(responses: NpsResponse[], dateRole: DateRole = "chamado"): MonthlyPoint[] {
   const buckets = new Map<string, NpsResponse[]>();
 
   for (const r of responses) {
-    const date = r.dataChamado ?? r.createdAt;
+    const date = dateForRole(r, dateRole);
     if (!date) continue;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     const list = buckets.get(key) ?? [];

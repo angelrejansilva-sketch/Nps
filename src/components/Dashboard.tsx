@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { applyFilters, defaultFilters, isElegivelNps } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
@@ -30,6 +29,7 @@ import { useProdutosImport } from "@/hooks/useProdutosImport";
 import { useProdutoStats } from "@/hooks/useProdutoStats";
 import { useSegmentoImport } from "@/hooks/useSegmentoImport";
 import { AiAnalysis } from "./AiAnalysis";
+import { Button } from "./Button";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { DataQualityPanel } from "./DataQualityPanel";
 import { DistributionBar } from "./DistributionBar";
@@ -42,6 +42,7 @@ import { ProdutoCatalog } from "./ProdutoCatalog";
 import { ProdutosUpload } from "./ProdutosUpload";
 import { ResponseTable } from "./ResponseTable";
 import { SectionCard } from "./SectionCard";
+import { SegmentNav } from "./SegmentNav";
 import { SegmentoUpload } from "./SegmentoUpload";
 import { NpsTrendChart, VolumeTrendChart } from "./TrendCharts";
 
@@ -66,24 +67,30 @@ export function Dashboard() {
   const [filters, setFilters] = useState<Filters>(() => defaultFilters());
   const [showImport, setShowImport] = useState(false);
 
-  const filtered = useMemo(() => applyFilters(responses, filters), [responses, filters]);
+  // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, rankings.
+  // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
+  const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
+  const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
   const eligibleResponses = useMemo(() => responses.filter(isElegivelNps), [responses]);
   const ineligibleCount = useMemo(() => responses.length - eligibleResponses.length, [responses, eligibleResponses]);
 
-  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
-  const trend = useMemo(() => monthlyTrend(filtered), [filtered]);
+  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
+  const trend = useMemo(() => monthlyTrend(filteredByResposta, "resposta"), [filteredByResposta]);
   const equipmentRanking = useMemo(() => byEquipmentCategory(filtered), [filtered]);
   const segmentoRanking = useMemo(() => bySegmento(filtered), [filtered]);
   const marcaRanking = useMemo(() => byMarca(filtered), [filtered]);
   const bareboneRanking = useMemo(() => byBarebone(filtered), [filtered]);
-  const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
+  const motivoRanking = useMemo(() => byMotivo(filteredByResposta), [filteredByResposta]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
-  const resRate = useMemo(() => resolutionRate(filtered), [filtered]);
-  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
-  const avgSatisfacao = useMemo(() => averageOf(filtered.map((r) => r.satisfacaoAtp)), [filtered]);
+  const resRate = useMemo(() => resolutionRate(filteredByResposta), [filteredByResposta]);
+  const avgAvaliacao = useMemo(() => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)), [filteredByResposta]);
+  const avgSatisfacao = useMemo(() => averageOf(filteredByResposta.map((r) => r.satisfacaoAtp)), [filteredByResposta]);
 
-  const aiSummary = useMemo(() => buildAiDataSummary(filtered, responses.length), [filtered, responses.length]);
+  const aiSummary = useMemo(
+    () => buildAiDataSummary(filteredByResposta, responses.length),
+    [filteredByResposta, responses.length]
+  );
 
   const yearOptions = useMemo(() => availableYears(responses), [responses]);
   const equipmentOptions = useMemo(() => optionLabels(byEquipmentCategory(eligibleResponses)), [eligibleResponses]);
@@ -130,17 +137,21 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-            <Link href="/varejo" className="underline">
-              Varejo
-            </Link>
-            <span>·</span>
-            <Link href="/governo-corporativo" className="underline">
-              Governo/Corporativo
-            </Link>
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SegmentNav />
+          <div className="flex gap-2">
+            {canManageData && (
+              <Button variant="primary" onClick={() => setShowImport((s) => !s)}>
+                {showImport ? "Fechar importação" : "Atualizar base"}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={signOut}>
+              Sair
+            </Button>
           </div>
+        </div>
+        <div>
           <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Análise de NPS
           </h1>
@@ -152,24 +163,6 @@ export function Dashboard() {
               : `${formatNumber(responses.length)} respostas na base`}
             {profile && ` · ${profile.full_name ?? profile.email}`}
           </p>
-        </div>
-        <div className="flex gap-2">
-          {canManageData && (
-            <button
-              onClick={() => setShowImport((s) => !s)}
-              className="rounded border px-3 py-1.5 text-sm font-medium"
-              style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-            >
-              {showImport ? "Fechar importação" : "Atualizar base"}
-            </button>
-          )}
-          <button
-            onClick={signOut}
-            className="rounded border px-3 py-1.5 text-sm font-medium"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-          >
-            Sair
-          </button>
         </div>
       </header>
 
@@ -284,10 +277,10 @@ export function Dashboard() {
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="Evolução do NPS" subtitle="Por mês do chamado">
+        <SectionCard title="Evolução do NPS" subtitle="Por mês da resposta">
           <NpsTrendChart data={trend} />
         </SectionCard>
-        <SectionCard title="Volume de respostas" subtitle="Por mês do chamado">
+        <SectionCard title="Volume de respostas" subtitle="Por mês da resposta">
           <VolumeTrendChart data={trend} />
         </SectionCard>
       </div>
@@ -336,7 +329,7 @@ export function Dashboard() {
       )}
 
       <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-        <CommentsExplorer responses={filtered} />
+        <CommentsExplorer responses={filteredByResposta} />
       </SectionCard>
 
       <SectionCard
@@ -350,16 +343,12 @@ export function Dashboard() {
         title="Respostas individuais"
         subtitle="Todas as respostas no filtro atual — use para acompanhar detratores"
         action={
-          <button
-            onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filtered))}
-            className="rounded border px-3 py-1.5 text-sm font-medium"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-          >
-            Exportar CSV ({filtered.length})
-          </button>
+          <Button variant="secondary" onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filteredByResposta))}>
+            Exportar CSV ({filteredByResposta.length})
+          </Button>
         }
       >
-        <ResponseTable responses={filtered} />
+        <ResponseTable responses={filteredByResposta} />
       </SectionCard>
     </div>
   );

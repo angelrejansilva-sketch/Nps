@@ -58,6 +58,18 @@ export function defaultFilters(): Filters {
   return { ...EMPTY_FILTERS, dateFrom: month, dateTo: month };
 }
 
+/**
+ * data_chamado (FT/data prevista) e a data de criação da resposta não são a mesma coisa —
+ * um chamado pode ter data_chamado no futuro em relação a quando a pesquisa foi respondida.
+ * "chamado" período por data_chamado (população de chamados no período);
+ * "resposta" período por created_at (quando a pesquisa foi de fato respondida).
+ */
+export type DateRole = "chamado" | "resposta";
+
+export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
+  return role === "resposta" ? (r.createdAt ?? r.dataChamado) : (r.dataChamado ?? r.createdAt);
+}
+
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */
 function monthStart(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})$/);
@@ -72,7 +84,7 @@ function monthEndExclusive(value: string): Date | null {
   return new Date(Number(match[1]), Number(match[2]), 1);
 }
 
-export function applyFilters(responses: NpsResponse[], filters: Filters): NpsResponse[] {
+export function applyFilters(responses: NpsResponse[], filters: Filters, dateRole: DateRole = "chamado"): NpsResponse[] {
   const from = filters.dateFrom ? monthStart(filters.dateFrom) : null;
   const toExclusive = filters.dateTo ? monthEndExclusive(filters.dateTo) : null;
   const search = filters.search.trim().toLowerCase();
@@ -81,7 +93,7 @@ export function applyFilters(responses: NpsResponse[], filters: Filters): NpsRes
   return responses.filter((r) => {
     if (!isElegivelNps(r)) return false;
 
-    const date = r.dataChamado ?? r.createdAt;
+    const date = dateForRole(r, dateRole);
 
     if (from && (!date || date < from)) return false;
     if (toExclusive && (!date || date >= toExclusive)) return false;
