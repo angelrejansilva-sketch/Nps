@@ -76,8 +76,12 @@ export function useNpsData(userId: string | undefined) {
           parsed.missingColumns.length > 0
             ? ` Colunas não encontradas: ${parsed.missingColumns.join(", ")}.`
             : "";
+        const duplicatesWarning =
+          parsed.duplicatesRemoved > 0
+            ? ` ${parsed.duplicatesRemoved} chamado(s) duplicado(s) no arquivo — mantida só a resposta mais recente de cada.`
+            : "";
         setLastImportInfo(
-          `${fileName}: ${parsed.responses.length} linhas processadas, ${quality.validScores} notas válidas.${missingWarning}`
+          `${fileName}: ${parsed.responses.length} linhas processadas, ${quality.validScores} notas válidas.${duplicatesWarning}${missingWarning}`
         );
         await reload();
       } catch (e) {

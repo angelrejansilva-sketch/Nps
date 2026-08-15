@@ -81,6 +81,37 @@ function toRow(raw: RawRow, index: number): NpsResponse {
   };
 }
 
+/**
+ * Um chamado nunca pode gerar mais de uma resposta de NPS na base — se o CSV
+ * trouxer duas linhas do mesmo chamado (reenvio, erro de export, etc.), fica
+ * só a mais recente (por created_at, com data_do_chamado como desempate).
+ */
+function dedupeByChamado(responses: NpsResponse[]): { responses: NpsResponse[]; duplicatesRemoved: number } {
+  const latestByChamado = new Map<string, NpsResponse>();
+  const semChamado: NpsResponse[] = [];
+  let duplicatesRemoved = 0;
+
+  for (const r of responses) {
+    if (!r.chamado) {
+      semChamado.push(r);
+      continue;
+    }
+    const existing = latestByChamado.get(r.chamado);
+    if (!existing) {
+      latestByChamado.set(r.chamado, r);
+      continue;
+    }
+    duplicatesRemoved++;
+    const existingDate = existing.createdAt ?? existing.dataChamado;
+    const currentDate = r.createdAt ?? r.dataChamado;
+    if (currentDate && (!existingDate || currentDate > existingDate)) {
+      latestByChamado.set(r.chamado, r);
+    }
+  }
+
+  return { responses: [...semChamado, ...latestByChamado.values()], duplicatesRemoved };
+}
+
 export function parseNpsCsv(fileText: string): ParseResult {
   const parsed = Papa.parse<RawRow>(fileText, {
     header: true,
@@ -91,12 +122,14 @@ export function parseNpsCsv(fileText: string): ParseResult {
   const columnsFound = parsed.meta.fields ?? [];
   const missingColumns = EXPECTED_COLUMNS.filter((c) => !columnsFound.includes(c));
 
-  const responses = parsed.data.map((raw, index) => toRow(raw, index));
+  const rawResponses = parsed.data.map((raw, index) => toRow(raw, index));
+  const { responses, duplicatesRemoved } = dedupeByChamado(rawResponses);
 
   return {
     responses,
-    totalRows: responses.length,
+    totalRows: rawResponses.length,
     columnsFound,
     missingColumns,
+    duplicatesRemoved,
   };
 }

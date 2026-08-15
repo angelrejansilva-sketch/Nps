@@ -44,6 +44,7 @@ export interface ParseResult {
   totalRows: number;
   columnsFound: string[];
   missingColumns: string[];
+  duplicatesRemoved: number;
 }
 
 export interface Filters {
