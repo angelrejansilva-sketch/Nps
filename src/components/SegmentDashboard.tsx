@@ -1,30 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { applyFilters, bySegmentoConsolidado, defaultFilters, isElegivelNps } from "@/lib/filters";
+import { useMemo } from "react";
+import { applyFilters, bySegmentoConsolidado, defaultFilters } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
-  availableYears,
-  byBarebone,
   byCliente,
-  byEquipamentoOficial,
-  byEquipmentCategory,
   byEstado,
-  byMarca,
   byMotivo,
   byScore,
-  groupBySegmentoConsolidado,
   monthlyTrend,
-  optionLabels,
   responseRate,
   summarizeNps,
   summarizeQuality,
   topByDetractors,
   topByPromoters,
 } from "@/lib/metrics";
-import type { Filters } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
 import { Button } from "./Button";
 import { CommentsExplorer } from "./CommentsExplorer";
@@ -51,14 +44,24 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
 
-  const [filters, setFilters] = useState<Filters>(() => defaultFilters());
-
   const scoped = useMemo(() => bySegmentoConsolidado(responses, segmentGroup), [responses, segmentGroup]);
+
+  const {
+    filters,
+    setFilters,
+    eligibleResponses: eligibleScoped,
+    yearOptions,
+    equipmentOptions,
+    segmentoOptions,
+    marcaOptions,
+    tipoProdutoOptions,
+    modeloOptions,
+  } = useDashboardFilters(scoped);
+
   // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, estado.
   // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
   const filtered = useMemo(() => applyFilters(scoped, filters, "chamado"), [scoped, filters]);
   const filteredByResposta = useMemo(() => applyFilters(scoped, filters, "resposta"), [scoped, filters]);
-  const eligibleScoped = useMemo(() => scoped.filter(isElegivelNps), [scoped]);
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
   const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
@@ -85,25 +88,6 @@ export function SegmentDashboard({ title, subtitle, segmentGroup, showClienteRan
     () => topByDetractors(clientePoints).map((p) => ({ category: p.category, value: p.detractors })),
     [clientePoints]
   );
-
-  const yearOptions = useMemo(() => availableYears(scoped), [scoped]);
-  const equipmentOptions = useMemo(() => optionLabels(byEquipmentCategory(eligibleScoped)), [eligibleScoped]);
-  const segmentoOptions = useMemo(
-    () => optionLabels(groupBySegmentoConsolidado(eligibleScoped)),
-    [eligibleScoped]
-  );
-  const marcaOptions = useMemo(() => byMarca(scoped).map((c) => c.category), [scoped]);
-  const tipoProdutoOptions = useMemo(
-    () => optionLabels(byEquipamentoOficial(eligibleScoped)),
-    [eligibleScoped]
-  );
-  const modeloOptions = useMemo(() => {
-    const filteredByTipo =
-      filters.tiposProduto.length > 0
-        ? eligibleScoped.filter((r) => filters.tiposProduto.includes(r.equipamentoOficial ?? "Não classificado"))
-        : eligibleScoped;
-    return optionLabels(byBarebone(filteredByTipo));
-  }, [eligibleScoped, filters.tiposProduto]);
 
   if (authLoading) {
     return (

@@ -152,6 +152,28 @@ export function byCliente(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.clienteNome);
 }
 
+export interface ClienteStat extends CategoryPoint {
+  avgAvaliacao: number | null;
+}
+
+/** Estatísticas por cliente para a tela de Análise por Cliente — nada de "Não classificado". */
+export function clienteStats(responses: NpsResponse[]): ClienteStat[] {
+  const buckets = new Map<string, NpsResponse[]>();
+  for (const r of responses) {
+    if (!r.clienteNome) continue;
+    const list = buckets.get(r.clienteNome) ?? [];
+    list.push(r);
+    buckets.set(r.clienteNome, list);
+  }
+  return [...buckets.entries()]
+    .map(([category, list]) => ({
+      category,
+      ...summarizeNps(list),
+      avgAvaliacao: averageOf(list.map((r) => r.avaliacaoProduto)),
+    }))
+    .sort((a, b) => b.validTotal - a.validTotal);
+}
+
 /** Tira as opções "sem dado" (não classificado / não informado) de listas de filtro — só mostra categorias reais e já combinadas. */
 const UNCLASSIFIED_LABELS = new Set(["Não classificado", "Não informado"]);
 

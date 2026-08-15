@@ -1,29 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { applyFilters, defaultFilters, isElegivelNps } from "@/lib/filters";
+import { applyFilters, defaultFilters } from "@/lib/filters";
 import { downloadCsv, responsesToCsv } from "@/lib/export";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
-  availableYears,
   byBarebone,
-  byEquipamentoOficial,
   byEquipmentCategory,
   byMarca,
   byMotivo,
   bySegmento,
-  groupBySegmentoConsolidado,
   monthlyTrend,
-  optionLabels,
   resolutionRate,
   responseRate,
   summarizeNps,
   summarizeQuality,
 } from "@/lib/metrics";
-import type { Filters } from "@/lib/types";
 import { buildAiDataSummary } from "@/lib/aiSummary";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
 import { useProdutosImport } from "@/hooks/useProdutosImport";
 import { useProdutoStats } from "@/hooks/useProdutoStats";
@@ -64,14 +60,24 @@ export function Dashboard() {
   const produtoStats = useProdutoStats();
   const produtosImport = useProdutosImport(profile?.id, produtoStats.reload);
 
-  const [filters, setFilters] = useState<Filters>(() => defaultFilters());
   const [showImport, setShowImport] = useState(false);
+
+  const {
+    filters,
+    setFilters,
+    eligibleResponses,
+    yearOptions,
+    equipmentOptions,
+    segmentoOptions,
+    marcaOptions,
+    tipoProdutoOptions,
+    modeloOptions,
+  } = useDashboardFilters(responses);
 
   // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, rankings.
   // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
   const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
   const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
-  const eligibleResponses = useMemo(() => responses.filter(isElegivelNps), [responses]);
   const ineligibleCount = useMemo(() => responses.length - eligibleResponses.length, [responses, eligibleResponses]);
 
   const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
@@ -91,25 +97,6 @@ export function Dashboard() {
     () => buildAiDataSummary(filteredByResposta, responses.length),
     [filteredByResposta, responses.length]
   );
-
-  const yearOptions = useMemo(() => availableYears(responses), [responses]);
-  const equipmentOptions = useMemo(() => optionLabels(byEquipmentCategory(eligibleResponses)), [eligibleResponses]);
-  const segmentoOptions = useMemo(
-    () => optionLabels(groupBySegmentoConsolidado(eligibleResponses)),
-    [eligibleResponses]
-  );
-  const marcaOptions = useMemo(() => byMarca(responses).map((c) => c.category), [responses]);
-  const tipoProdutoOptions = useMemo(
-    () => optionLabels(byEquipamentoOficial(eligibleResponses)),
-    [eligibleResponses]
-  );
-  const modeloOptions = useMemo(() => {
-    const scoped =
-      filters.tiposProduto.length > 0
-        ? eligibleResponses.filter((r) => filters.tiposProduto.includes(r.equipamentoOficial ?? "Não classificado"))
-        : eligibleResponses;
-    return optionLabels(byBarebone(scoped));
-  }, [eligibleResponses, filters.tiposProduto]);
 
   if (authLoading) {
     return (
