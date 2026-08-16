@@ -59,6 +59,9 @@ export function resolutionRate(responses: NpsResponse[]): number | null {
 export interface MonthlyPoint extends NpsSummary {
   month: string;
   label: string;
+  total: number;
+  respRate: number | null;
+  avgAvaliacao: number | null;
 }
 
 export function monthlyTrend(responses: NpsResponse[], dateRole: DateRole = "chamado"): MonthlyPoint[] {
@@ -85,6 +88,9 @@ export function monthlyTrend(responses: NpsResponse[], dateRole: DateRole = "cha
       return {
         month,
         label: `${monthLabels[Number(m) - 1]}/${year.slice(2)}`,
+        total: list.length,
+        respRate: responseRate(list),
+        avgAvaliacao: averageOf(list.map((r) => r.avaliacaoProduto)),
         ...summary,
       };
     });

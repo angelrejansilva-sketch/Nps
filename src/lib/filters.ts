@@ -58,6 +58,12 @@ export function defaultFilters(): Filters {
   return { ...EMPTY_FILTERS, dateFrom: month, dateTo: month };
 }
 
+/** Filtros padrão pra telas de evolução mensal: ano atual inteiro (jan-dez), sem mês específico. */
+export function defaultYearFilters(): Filters {
+  const year = new Date().getFullYear();
+  return { ...EMPTY_FILTERS, dateFrom: `${year}-01`, dateTo: `${year}-12` };
+}
+
 /**
  * data_chamado, created_at (resposta) e FT (Fechamento Técnico) não são a mesma coisa —
  * um chamado pode ter data_chamado no futuro em relação a quando a pesquisa foi respondida.

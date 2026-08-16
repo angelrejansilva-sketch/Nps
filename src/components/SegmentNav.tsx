@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/varejo", label: "Varejo" },
   { href: "/governo-corporativo", label: "Governo/Corporativo" },
   { href: "/corp-plataforma", label: "Corp Plataforma" },
+  { href: "/evolucao-mensal", label: "Evolução Mensal" },
   { href: "/clientes", label: "Por Cliente" },
   { href: "/ct", label: "Por CT" },
   { href: "/chamados", label: "Chamados Encerrados" },

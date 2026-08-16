@@ -16,10 +16,11 @@ import type { Filters, NpsResponse } from "@/lib/types";
 /**
  * Estado de filtros + listas de opções compartilhado entre as telas (painel geral,
  * páginas de segmento, análise por cliente/CT). `base` é o conjunto de respostas
- * já escopado (ex: só Varejo) antes de aplicar os filtros do usuário.
+ * já escopado (ex: só Varejo) antes de aplicar os filtros do usuário. `initialFilters`
+ * troca o padrão de "mês atual" (ex: telas de evolução mensal querem o ano inteiro).
  */
-export function useDashboardFilters(base: NpsResponse[]) {
-  const [filters, setFilters] = useState<Filters>(() => defaultFilters());
+export function useDashboardFilters(base: NpsResponse[], initialFilters: () => Filters = defaultFilters) {
+  const [filters, setFilters] = useState<Filters>(initialFilters);
 
   const eligibleResponses = useMemo(() => base.filter(isElegivelNps), [base]);
 
