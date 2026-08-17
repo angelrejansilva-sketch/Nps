@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,7 +11,21 @@ export interface Profile {
   role: string;
 }
 
-export function useAuth() {
+interface AuthContextValue {
+  profile: Profile | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+  canManageData: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * Busca sessão + perfil uma única vez por sessão de navegação e compartilha via
+ * contexto — sem isso, cada página que chama useAuth() refaz a checagem de sessão
+ * e a consulta em `profiles` do zero ao trocar de rota.
+ */
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,5 +64,13 @@ export function useAuth() {
 
   const canManageData = profile?.role === "admin" || profile?.role === "analista";
 
-  return { profile, loading, signOut, canManageData };
+  return (
+    <AuthContext.Provider value={{ profile, loading, signOut, canManageData }}>{children}</AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth precisa estar dentro de <AuthProvider>.");
+  return ctx;
 }

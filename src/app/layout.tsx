@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthProvider } from "@/hooks/useAuth";
+import { NpsDataProvider } from "@/hooks/useNpsData";
 
 export const metadata: Metadata = {
   title: "Análise de NPS",
@@ -24,7 +26,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeToggle />
-        {children}
+        <AuthProvider>
+          <NpsDataProvider>{children}</NpsDataProvider>
+        </AuthProvider>
       </body>
     </html>
   );

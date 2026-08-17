@@ -72,7 +72,7 @@ export function SegmentDashboard({
   restrictGovCorpNps = false,
 }: SegmentDashboardProps) {
   const { profile, loading: authLoading, signOut } = useAuth();
-  const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
+  const { responses, loading: dataLoading, loadProgress, error } = useNpsData();
 
   const [subSegment, setSubSegment] = useState<string | null>(null);
   const effectivePopulationDateRole: DateRole = populationDateRole;

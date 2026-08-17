@@ -16,7 +16,7 @@ import { NpsTrendChart, VolumeTrendChart } from "./TrendCharts";
 
 export function EvolucaoMensalDashboard() {
   const { profile, loading: authLoading, signOut } = useAuth();
-  const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
+  const { responses, loading: dataLoading, loadProgress, error } = useNpsData();
 
   const {
     filters,

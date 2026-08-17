@@ -56,7 +56,7 @@ export function Dashboard() {
     lastImportInfo,
     importCsv,
     reload,
-  } = useNpsData(profile?.id);
+  } = useNpsData();
 
   const segmentoImport = useSegmentoImport(reload);
   const produtoStats = useProdutoStats();

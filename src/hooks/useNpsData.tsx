@@ -1,19 +1,42 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createImportBatch, fetchAllResponses, upsertResponses } from "@/lib/supabase/queries";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { parseNpsCsv } from "@/lib/parse";
 import { summarizeQuality } from "@/lib/metrics";
 import type { NpsResponse } from "@/lib/types";
+import { useAuth } from "./useAuth";
 
 interface ImportProgress {
   done: number;
   total: number;
 }
 
-export function useNpsData(userId: string | undefined) {
+interface NpsDataContextValue {
+  responses: NpsResponse[];
+  loading: boolean;
+  loadProgress: ImportProgress | null;
+  error: string | null;
+  importing: boolean;
+  importProgress: ImportProgress | null;
+  lastImportInfo: string | null;
+  importCsv: (fileName: string, text: string) => Promise<void>;
+  reload: () => Promise<void>;
+}
+
+const NpsDataContext = createContext<NpsDataContextValue | null>(null);
+
+/**
+ * Busca `nps_responses` inteira uma única vez por sessão de navegação e compartilha
+ * via contexto — sem isso, cada página (Dashboard, Varejo, GOV/CORP, CT, Cliente,
+ * Evolução Mensal) rebaixava as ~40 mil linhas do zero toda vez que era visitada.
+ */
+export function NpsDataProvider({ children }: { children: ReactNode }) {
+  const { profile, loading: authLoading } = useAuth();
+  const userId = profile?.id;
+
   const [responses, setResponses] = useState<NpsResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState<ImportProgress | null>(null);
@@ -21,6 +44,7 @@ export function useNpsData(userId: string | undefined) {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [lastImportInfo, setLastImportInfo] = useState<string | null>(null);
+  const hasLoaded = useRef(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -39,11 +63,12 @@ export function useNpsData(userId: string | undefined) {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      reload();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [reload]);
+    // Só busca depois que a sessão resolver e houver alguém logado — evita disparar
+    // a carga pesada na tela de login (que também está sob este provider).
+    if (authLoading || !userId || hasLoaded.current) return;
+    hasLoaded.current = true;
+    reload();
+  }, [authLoading, userId, reload]);
 
   const importCsv = useCallback(
     async (fileName: string, text: string) => {
@@ -99,5 +124,17 @@ export function useNpsData(userId: string | undefined) {
     [userId, reload]
   );
 
-  return { responses, loading, loadProgress, error, importing, importProgress, lastImportInfo, importCsv, reload };
+  return (
+    <NpsDataContext.Provider
+      value={{ responses, loading, loadProgress, error, importing, importProgress, lastImportInfo, importCsv, reload }}
+    >
+      {children}
+    </NpsDataContext.Provider>
+  );
+}
+
+export function useNpsData(): NpsDataContextValue {
+  const ctx = useContext(NpsDataContext);
+  if (!ctx) throw new Error("useNpsData precisa estar dentro de <NpsDataProvider>.");
+  return ctx;
 }
