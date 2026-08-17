@@ -42,6 +42,51 @@ export interface NpsResponseRow {
   created_at_source: string | null;
 }
 
+/**
+ * "01/01/2025" é um valor sentinela de "data desconhecida" usado em dois lotes de
+ * importação da fonte (2.342 linhas na base inteira, bem acima do volume normal de
+ * qualquer dia real) — não representa a data de abertura de fato do chamado.
+ */
+const DATA_CHAMADO_SENTINELA = "2025-01-01";
+
+function dateOnly(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function sameDate(a: Date, b: Date): boolean {
+  return dateOnly(a) === dateOnly(b);
+}
+
+/** Desfaz dia/mês, só válido quando o dia original é ≤ 12 (senão não existiria como mês). */
+function trySwapDayMonth(date: Date): Date | null {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  if (day > 12) return null;
+  return new Date(date.getFullYear(), day - 1, month);
+}
+
+/**
+ * data_do_chamado às vezes vem com dia/mês trocados na fonte (padrão americano
+ * MM/DD lido como se fosse DD/MM brasileiro) — o que faz a data cair depois do
+ * próprio Encerramento/FT do chamado, o que é impossível. Quando desfazer a troca
+ * bate exatamente com uma dessas datas confiáveis, usa a versão corrigida.
+ */
+function correctSwappedDataChamado(
+  dataChamado: Date | null,
+  encerramentoDate: Date | null,
+  ftDate: Date | null
+): Date | null {
+  if (!dataChamado) return null;
+  const isAfter = (ref: Date | null) => ref !== null && dateOnly(dataChamado) > dateOnly(ref);
+  if (!isAfter(encerramentoDate) && !isAfter(ftDate)) return dataChamado;
+
+  const swapped = trySwapDayMonth(dataChamado);
+  if (!swapped) return dataChamado;
+  if (encerramentoDate && sameDate(swapped, encerramentoDate)) return swapped;
+  if (ftDate && sameDate(swapped, ftDate)) return swapped;
+  return dataChamado;
+}
+
 export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
   const issues: QualityIssue[] = [];
 
@@ -53,6 +98,12 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
   if (dataChamadoRaw.trim() && !row.data_chamado) {
     issues.push({ field: "data_do_chamado", reason: "Data não reconhecida", raw: dataChamadoRaw });
   }
+  const dataChamadoSemSentinela = row.data_chamado === DATA_CHAMADO_SENTINELA ? null : row.data_chamado;
+  const dataChamadoParsed = dataChamadoSemSentinela ? new Date(`${dataChamadoSemSentinela}T00:00:00`) : null;
+
+  const ftDate = row.ft ? parseFlexibleDate(row.ft) : null;
+  const encerramentoDate = row.encerramento ? parseFlexibleDate(row.encerramento) : null;
+  const dataChamado = correctSwappedDataChamado(dataChamadoParsed, encerramentoDate, ftDate);
 
   return {
     id: row.source_id,
@@ -71,8 +122,8 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     clienteNome: row.cliente_nome,
     projeto: row.projeto,
     ct: row.ct,
-    ftDate: row.ft ? parseFlexibleDate(row.ft) : null,
-    encerramentoDate: row.encerramento ? parseFlexibleDate(row.encerramento) : null,
+    ftDate,
+    encerramentoDate,
     encerramentoDesc: row.encerramento_desc,
     tipo: row.tipo,
     serie: row.serie,
@@ -91,7 +142,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     satisfacaoAtp: row.satisfacao_atp,
     avaliacaoProduto: row.avaliacao_produto,
     comentario: row.comentario,
-    dataChamado: row.data_chamado ? new Date(`${row.data_chamado}T00:00:00`) : null,
+    dataChamado,
     dataChamadoRaw,
     qualityIssues: issues,
   };

@@ -130,3 +130,12 @@ export function parseFlexibleDate(raw: string): Date | null {
 
   return null;
 }
+
+/**
+ * "01/01/2025" é usado pela fonte como valor sentinela de "data desconhecida" em
+ * alguns lotes de nps.xlsx (milhares de linhas na base, bem acima do volume normal
+ * de qualquer dia real) — não representa a data de abertura de fato do chamado.
+ */
+export function isSentinelDate(date: Date | null): boolean {
+  return !!date && date.getFullYear() === 2025 && date.getMonth() === 0 && date.getDate() === 1;
+}

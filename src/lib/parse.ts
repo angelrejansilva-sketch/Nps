@@ -3,6 +3,7 @@ import { categorizeEquipment } from "./classify";
 import {
   classify,
   cleanPhone,
+  isSentinelDate,
   normalizeComment,
   normalizeMotivo,
   parseAvaliacaoProduto,
@@ -39,10 +40,13 @@ function toRow(raw: RawRow, index: number): NpsResponse {
   if (scoreIssue) issues.push(scoreIssue);
 
   const dataChamadoRaw = raw.data_do_chamado ?? "";
-  const dataChamado = parseFlexibleDate(dataChamadoRaw);
-  if (dataChamadoRaw.trim() && !dataChamado) {
+  const dataChamadoParsed = parseFlexibleDate(dataChamadoRaw);
+  if (dataChamadoRaw.trim() && !dataChamadoParsed) {
     issues.push({ field: "data_do_chamado", reason: "Data não reconhecida", raw: dataChamadoRaw });
   }
+  // "01/01/2025" é um valor sentinela de "data desconhecida" usado pela fonte em
+  // alguns lotes — não representa a data de abertura de fato do chamado.
+  const dataChamado = isSentinelDate(dataChamadoParsed) ? null : dataChamadoParsed;
 
   const createdAtRaw = raw.created_at ?? "";
   const createdAt = parseFlexibleDate(createdAtRaw);
