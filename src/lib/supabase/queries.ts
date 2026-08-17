@@ -57,7 +57,7 @@ async function runBatchesConcurrent<T>(
 }
 
 const RESPONSES_SELECT =
-  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, cliente_uf, cliente_nome, projeto, ct, ft, encerramento, encerramento_desc, tipo, serie, descricao_material, modal_de_envio, data_entrega_retorno, utiliza_peca, segmento_consolidado, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
+  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, cliente_uf, cliente_nome, projeto, ct, ft, encerramento, encerramento_desc, tipo, serie, descricao_material, modal_de_envio, data_entrega_retorno, utiliza_peca, segmento_consolidado, produto_valido, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
 
 export async function fetchAllResponses(
   supabase: SupabaseClient,
@@ -148,7 +148,6 @@ export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
   return (data as number) ?? 0;
 }
 
-/** Recalcula Num_Ocorrência (recorrência por número de série) em nps_chamados e propaga em nps_responses via syncSegmento. */
 export interface ChamadosEnviadosParams {
   segmentos: string[];
   marcas?: string[];
@@ -183,8 +182,20 @@ export async function fetchChamadosEnviadosCount(
   return (data as number) ?? 0;
 }
 
+/** Recalcula Num_Ocorrência (recorrência por número de série) em nps_chamados e propaga em nps_responses via syncSegmento. */
 export async function syncRecorrencia(supabase: SupabaseClient): Promise<number> {
   const { data, error } = await supabase.rpc("sync_nps_recorrencia");
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
+/**
+ * Recalcula produto_valido (Produtos[Tipo Equipamento] <> "SERVIDOR-DESKTOP" via SKU,
+ * com padding pra 18 dígitos) em nps_chamados e nps_responses — precisa rodar depois de
+ * importar chamados (SKU pode mudar) ou produtos (catálogo pode mudar).
+ */
+export async function syncProdutoValido(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase.rpc("sync_nps_produto_valido");
   if (error) throw error;
   return (data as number) ?? 0;
 }

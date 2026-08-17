@@ -7,6 +7,7 @@ export default function CorpPlataformaPage() {
       subtitle="Segmento CORP PLATAFORMA — pesquisas enviadas contam pela data de Fechamento Técnico (FT)"
       segmentGroup={["CORP PLATAFORMA"]}
       populationDateRole="ft"
+      filterServidorDesktop
     />
   );
 }

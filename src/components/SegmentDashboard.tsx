@@ -60,6 +60,13 @@ interface SegmentDashboardProps {
    * VAREJO e a base sem filtro de segmento não têm essa restrição.
    */
   restrictGovCorpNps?: boolean;
+  /**
+   * Filtro de página achado no Power BI (Performance Analyzer, página Varejo):
+   * Produtos[Tipo Equipamento] <> "SERVIDOR-DESKTOP" via SKU. Confirmado batendo
+   * com a referência real (1029 vs 1027 pesquisas enviadas em jul/2026); não
+   * verificado em GOV/CORP, por isso não é o padrão.
+   */
+  filterServidorDesktop?: boolean;
 }
 
 export function SegmentDashboard({
@@ -70,6 +77,7 @@ export function SegmentDashboard({
   populationDateRole = "chamado",
   subSegmentOptions,
   restrictGovCorpNps = false,
+  filterServidorDesktop = false,
 }: SegmentDashboardProps) {
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData();
@@ -77,10 +85,10 @@ export function SegmentDashboard({
   const [subSegment, setSubSegment] = useState<string | null>(null);
   const effectivePopulationDateRole: DateRole = populationDateRole;
 
-  const scoped = useMemo(
-    () => bySegmentoConsolidado(responses, subSegment ? [subSegment] : segmentGroup),
-    [responses, subSegment, segmentGroup]
-  );
+  const scoped = useMemo(() => {
+    const bySegmento = bySegmentoConsolidado(responses, subSegment ? [subSegment] : segmentGroup);
+    return filterServidorDesktop ? bySegmento.filter((r) => r.produtoValido !== false) : bySegmento;
+  }, [responses, subSegment, segmentGroup, filterServidorDesktop]);
 
   const {
     filters,

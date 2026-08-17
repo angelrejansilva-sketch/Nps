@@ -35,6 +35,8 @@ export interface NpsResponse {
   dataEntregaRetorno: string | null;
   utilizaPeca: string | null;
   segmentoConsolidado: string | null;
+  /** Produtos[Tipo Equipamento] <> "SERVIDOR-DESKTOP" via SKU — filtro de página do Varejo no Power BI. Null = SKU não bate com nenhum produto cadastrado. */
+  produtoValido: boolean | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   scoreStatus: ScoreStatus;

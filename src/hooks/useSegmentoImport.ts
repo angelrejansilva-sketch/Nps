@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { parseChamadosCsv } from "@/lib/parseChamados";
-import { syncSegmento, upsertChamados } from "@/lib/supabase/queries";
+import { syncProdutoValido, syncSegmento, upsertChamados } from "@/lib/supabase/queries";
 
 interface Progress {
   done: number;
@@ -38,6 +38,7 @@ export function useSegmentoImport(onSynced: () => void) {
         }
 
         const updated = await syncSegmento(supabase);
+        await syncProdutoValido(supabase);
 
         setLastInfo(
           `${fileName}: ${parsedChamados.records.length} chamados importados (${parsedChamados.matchedColumns.length} colunas), ${updated} respostas de NPS atualizadas.`

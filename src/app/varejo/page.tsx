@@ -8,6 +8,7 @@ export default function VarejoPage() {
       subtitle="Segmentos: Varejo e CORP Plataforma — use o filtro acima para separar os dois"
       segmentGroup={VAREJO_SEGMENTOS}
       populationDateRole="ft"
+      filterServidorDesktop
       subSegmentOptions={[
         { label: "Varejo", value: "VAREJO" },
         { label: "Corp Plataforma", value: "CORP PLATAFORMA" },

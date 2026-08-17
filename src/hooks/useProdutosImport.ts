@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { parseProdutosCsv } from "@/lib/parseProdutos";
-import { createImportBatch, upsertProdutos } from "@/lib/supabase/queries";
+import { createImportBatch, syncProdutoValido, upsertProdutos } from "@/lib/supabase/queries";
 
 interface Progress {
   done: number;
@@ -42,6 +42,7 @@ export function useProdutosImport(userId: string | undefined, onImported: () => 
         await upsertProdutos(supabase, parsed.produtos, batchId, (done, total) =>
           setProgress({ done, total })
         );
+        await syncProdutoValido(supabase);
 
         setLastInfo(`${fileName}: ${parsed.produtos.length} produtos importados.`);
         onImported();

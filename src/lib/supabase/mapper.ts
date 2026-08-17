@@ -28,6 +28,7 @@ export interface NpsResponseRow {
   data_entrega_retorno: string | null;
   utiliza_peca: string | null;
   segmento_consolidado: string | null;
+  produto_valido: boolean | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   score_status: "valid" | "no_response" | "invalid";
@@ -132,6 +133,7 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     dataEntregaRetorno: row.data_entrega_retorno,
     utilizaPeca: row.utiliza_peca,
     segmentoConsolidado: row.segmento_consolidado,
+    produtoValido: row.produto_valido,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
     scoreStatus: row.score_status,
@@ -175,6 +177,7 @@ export function npsResponseToDbRow(
   | "data_entrega_retorno"
   | "utiliza_peca"
   | "segmento_consolidado"
+  | "produto_valido"
 > & {
   score_status: string;
   problema_solucionado: string;

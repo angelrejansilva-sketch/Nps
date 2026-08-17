@@ -80,6 +80,7 @@ function toRow(raw: RawRow, index: number): NpsResponse {
     dataEntregaRetorno: null,
     utilizaPeca: null,
     segmentoConsolidado: null,
+    produtoValido: null,
     problemaSolucionado: parseProblemaSolucionado(raw.problema_solucionado ?? ""),
     score,
     scoreStatus,

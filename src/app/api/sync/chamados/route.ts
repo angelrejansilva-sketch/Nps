@@ -1,7 +1,7 @@
 import { checkSyncAuth } from "@/lib/syncAuth";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { parseChamadosCsv } from "@/lib/parseChamados";
-import { syncSegmento, upsertChamados } from "@/lib/supabase/queries";
+import { syncProdutoValido, syncSegmento, upsertChamados } from "@/lib/supabase/queries";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     const updated = await syncSegmento(supabase);
+    await syncProdutoValido(supabase);
 
     return Response.json({
       ok: true,
