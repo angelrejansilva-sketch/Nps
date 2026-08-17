@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { applyFilters, bySegmentoConsolidado, defaultFilters, type DateRole } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
@@ -31,6 +31,7 @@ import { ScoreHistogram } from "./ScoreHistogram";
 import { SectionCard } from "./SectionCard";
 import { SegmentNav } from "./SegmentNav";
 import { Sidebar } from "./Sidebar";
+import { SegmentToggle, type SegmentToggleOption } from "./SegmentToggle";
 import { NpsTrendChart } from "./TrendCharts";
 
 interface SegmentDashboardProps {
@@ -40,6 +41,8 @@ interface SegmentDashboardProps {
   showClienteRanking?: boolean;
   /** Data usada para escopar a "população" de chamados no período (Pesquisas enviadas, estado). Padrão: data_chamado. */
   populationDateRole?: DateRole;
+  /** Se definido, mostra um toggle pra separar os segmentos dentro do grupo (ex: Varejo vs Corp Plataforma). */
+  subSegmentOptions?: SegmentToggleOption[];
 }
 
 export function SegmentDashboard({
@@ -48,11 +51,20 @@ export function SegmentDashboard({
   segmentGroup,
   showClienteRanking,
   populationDateRole = "chamado",
+  subSegmentOptions,
 }: SegmentDashboardProps) {
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
 
-  const scoped = useMemo(() => bySegmentoConsolidado(responses, segmentGroup), [responses, segmentGroup]);
+  const [subSegment, setSubSegment] = useState<string | null>(null);
+  // CORP PLATAFORMA sempre usa FT como data de população, mesmo quando acessado
+  // via o toggle dentro da página de Varejo, não só pela página dedicada.
+  const effectivePopulationDateRole: DateRole = subSegment === "CORP PLATAFORMA" ? "ft" : populationDateRole;
+
+  const scoped = useMemo(
+    () => bySegmentoConsolidado(responses, subSegment ? [subSegment] : segmentGroup),
+    [responses, subSegment, segmentGroup]
+  );
 
   const {
     filters,
@@ -69,7 +81,10 @@ export function SegmentDashboard({
   // População de chamados no período (pesquisas enviadas, estado) — data_chamado por padrão,
   // FT (Fechamento Técnico) em CORP PLATAFORMA.
   // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
-  const filtered = useMemo(() => applyFilters(scoped, filters, populationDateRole), [scoped, filters, populationDateRole]);
+  const filtered = useMemo(
+    () => applyFilters(scoped, filters, effectivePopulationDateRole),
+    [scoped, filters, effectivePopulationDateRole]
+  );
   const filteredByResposta = useMemo(() => applyFilters(scoped, filters, "resposta"), [scoped, filters]);
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
@@ -125,6 +140,13 @@ export function SegmentDashboard({
             {subtitle}
           </p>
         </div>
+        {subSegmentOptions && (
+          <SegmentToggle
+            options={[{ label: "Todos", value: null }, ...subSegmentOptions]}
+            value={subSegment}
+            onChange={setSubSegment}
+          />
+        )}
       </header>
 
       {error && (
