@@ -87,6 +87,7 @@ export function ClienteDashboard() {
             { label: "NPS geral", value: formatNps(summary.nps) },
             { label: "Avaliação", value: avgAvaliacao !== null ? avgAvaliacao.toFixed(1) : "—" },
           ]}
+          onResetFilters={() => setFilters(defaultFilters())}
         >
           <FilterBar
             filters={filters}

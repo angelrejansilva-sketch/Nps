@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { Button } from "./Button";
 
 interface SidebarStat {
   label: string;
@@ -12,6 +13,7 @@ interface SidebarProps {
   userEmail?: string | null;
   onSignOut: () => void;
   stats: SidebarStat[];
+  onResetFilters: () => void;
   children: React.ReactNode;
 }
 
@@ -29,7 +31,7 @@ const SIDEBAR_VARS = {
   "--text-muted": "#8b8f96",
 } as CSSProperties;
 
-export function Sidebar({ userName, userEmail, onSignOut, stats, children }: SidebarProps) {
+export function Sidebar({ userName, userEmail, onSignOut, stats, onResetFilters, children }: SidebarProps) {
   const initials =
     userName
       .split(" ")
@@ -88,7 +90,17 @@ export function Sidebar({ userName, userEmail, onSignOut, stats, children }: Sid
         </div>
       )}
 
-      <div className="flex flex-col gap-3">{children}</div>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            Filtros
+          </span>
+          <Button variant="ghost" onClick={onResetFilters} className="px-2.5 py-1 text-xs">
+            Limpar filtros
+          </Button>
+        </div>
+        {children}
+      </div>
     </aside>
   );
 }

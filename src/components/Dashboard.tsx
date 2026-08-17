@@ -226,6 +226,7 @@ export function Dashboard() {
             { label: "Taxa de resposta", value: formatPercent(respRate) },
             { label: "NPS", value: formatNps(summary.nps) },
           ]}
+          onResetFilters={() => setFilters(defaultFilters())}
         >
           <FilterBar
             filters={filters}

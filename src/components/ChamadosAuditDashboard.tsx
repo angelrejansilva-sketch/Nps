@@ -51,6 +51,7 @@ export function ChamadosAuditDashboard() {
           userEmail={profile?.email}
           onSignOut={signOut}
           stats={[{ label: "Chamados no filtro", value: formatNumber(total) }]}
+          onResetFilters={resetFilters}
         >
           <ChamadosFilterBar filters={filters} onChange={updateFilters} onReset={resetFilters} />
         </Sidebar>

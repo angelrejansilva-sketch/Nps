@@ -82,6 +82,7 @@ export function EvolucaoMensalDashboard() {
             { label: "Ano selecionado", value: String(selectedYear) },
             { label: "Respostas no ano", value: formatNumber(filteredByResposta.length) },
           ]}
+          onResetFilters={() => setFilters(defaultYearFilters())}
         >
           <FilterBar
             filters={filters}

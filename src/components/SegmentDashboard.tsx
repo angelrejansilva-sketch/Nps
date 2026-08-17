@@ -169,6 +169,7 @@ export function SegmentDashboard({
             { label: "Taxa de resposta", value: formatPercent(respRate) },
             { label: "NPS de serviço", value: formatNps(summary.nps) },
           ]}
+          onResetFilters={() => setFilters(defaultFilters())}
         >
           <FilterBar
             filters={filters}
