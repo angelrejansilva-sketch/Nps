@@ -147,7 +147,10 @@ export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
   if (role === "ft") return pastOrNull(r.ftDate) ?? pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
   if (role === "encerramento")
     return pastOrNull(r.encerramentoDate) ?? pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
-  return pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
+  // data_do_chamado às vezes vem com dia/mês trocados na fonte (formato americano
+  // MM/DD lido como se fosse DD/MM) — quando isso a joga pro futuro, o Encerramento
+  // (sincronizado à parte, confiável) é o melhor substituto disponível.
+  return pastOrNull(r.dataChamado) ?? pastOrNull(r.encerramentoDate) ?? pastOrNull(r.createdAt);
 }
 
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */

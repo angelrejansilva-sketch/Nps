@@ -70,14 +70,17 @@ export function npsGeral(r: NpsResponse): string {
 }
 
 /** Anos com pelo menos uma resposta na base — pra alimentar o seletor de Ano, mais recente primeiro. */
+function pastOrNull(date: Date | null): Date | null {
+  return date && date.getTime() <= Date.now() ? date : null;
+}
+
 export function availableYears(responses: NpsResponse[]): number[] {
   const years = new Set<number>();
-  const now = Date.now();
   for (const r of responses) {
-    const date = r.dataChamado ?? r.createdAt;
-    // data_do_chamado no futuro é erro de digitação na fonte, não um chamado real —
-    // não oferece um ano fantasma no seletor de período por causa disso.
-    if (date && date.getTime() <= now) years.add(date.getFullYear());
+    // data_do_chamado às vezes vem com dia/mês trocados na fonte e cai no futuro —
+    // usa o Encerramento (confiável) nesse caso em vez de oferecer um ano fantasma.
+    const date = pastOrNull(r.dataChamado) ?? pastOrNull(r.encerramentoDate) ?? pastOrNull(r.createdAt);
+    if (date) years.add(date.getFullYear());
   }
   return [...years].sort((a, b) => b - a);
 }
