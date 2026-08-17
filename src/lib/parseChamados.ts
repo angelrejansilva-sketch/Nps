@@ -1,22 +1,17 @@
 import Papa from "papaparse";
 import { normalizeKey } from "./text";
 
+// Mantém só as colunas que o app realmente lê (telas, sincronização de nps_responses,
+// ou as views/funções SQL de elegibilidade) — o resto (textos livres de abertura/
+// encerramento, campos de engenharia, endereço do detentor etc.) foi descartado do
+// banco pra caber na cota gratuita do Supabase (texto_abertura+texto_encerrado sozinhos
+// eram 153MB de ~440MB da tabela). Vem no CSV mas não é mais persistido.
 const CHAMADO_COLUMN_NAMES = [
-  "ct", "atp", "abertura", "ft", "encerramento", "segmento", "tipo",
-  "texto_abertura", "texto_breve", "encerramento_desc", "texto_encerrado",
-  "projeto", "cliente_codigo", "cliente_nome", "escritorio_vendas",
-  "cliente_uf", "cliente_cidade", "detentor_nome", "detentor_cep",
-  "detentor_uf", "detentor_cidade", "detentor_bairro", "detentor_logradouro",
+  "ct", "ft", "encerramento", "segmento", "tipo", "encerramento_desc",
+  "projeto", "cliente_nome", "cliente_uf", "detentor_nome",
   "serie", "sku", "marca", "equipamento", "barebone", "utiliza_peca",
-  "utiliza_peca_engenharia", "hass", "sintoma", "ocorrencia_chamado",
-  "tempo_falha_meses", "tecnico_nome", "grupo_economico", "os_cliente",
-  "idade_parque", "idade_parque_falha", "assistencia_uf", "assistencia_cidade",
-  "descricao_material", "sla_data_limite", "sla_tipo_calculo", "sla_status",
-  "usuario_abertura", "sintoma_eng", "divisao_eng", "varejo", "login",
-  "modal", "status_chamado", "data_entrega_retorno", "status_retorno",
-  "data_retirada_entrega_cliente", "detentor_email", "detentor_celular",
-  "detentor_contato", "prioritario", "modal_de_envio", "peca_eng_2",
-  "data_inicio_garantia",
+  "hass", "descricao_material", "sla_status", "varejo",
+  "data_entrega_retorno", "detentor_celular", "prioritario", "modal_de_envio",
 ] as const;
 
 export type ChamadoRecord = { chamado: string } & Record<(typeof CHAMADO_COLUMN_NAMES)[number], string | undefined>;
