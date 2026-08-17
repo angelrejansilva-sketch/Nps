@@ -132,10 +132,22 @@ export function defaultYearFilters(): Filters {
  */
 export type DateRole = "chamado" | "ft" | "encerramento";
 
+/**
+ * Nenhum papel de data pode legitimamente cair no futuro (chamado aberto/fechado
+ * depois de "agora" é erro de digitação na fonte, não um chamado real) — algumas
+ * linhas de nps_responses trazem data_do_chamado incoerente com o Encerramento
+ * (chegando a meses depois de o chamado já ter sido fechado). Tratar como "sem
+ * data" evita que essas linhas apareçam em meses fantasmas nos gráficos.
+ */
+function pastOrNull(date: Date | null): Date | null {
+  return date && date.getTime() <= Date.now() ? date : null;
+}
+
 export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
-  if (role === "ft") return r.ftDate ?? r.dataChamado ?? r.createdAt;
-  if (role === "encerramento") return r.encerramentoDate ?? r.dataChamado ?? r.createdAt;
-  return r.dataChamado ?? r.createdAt;
+  if (role === "ft") return pastOrNull(r.ftDate) ?? pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
+  if (role === "encerramento")
+    return pastOrNull(r.encerramentoDate) ?? pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
+  return pastOrNull(r.dataChamado) ?? pastOrNull(r.createdAt);
 }
 
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */

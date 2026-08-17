@@ -135,7 +135,7 @@ export async function upsertResponses(
   let done = 0;
 
   await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
-    const { error } = await supabase.from("nps_responses").upsert(batch, { onConflict: "source_id" });
+    const { error } = await supabase.from("nps_responses").upsert(batch, { onConflict: "chamado" });
     if (error) throw error;
     done += batch.length;
     onProgress?.(done, rows.length);
