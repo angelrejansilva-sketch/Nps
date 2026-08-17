@@ -29,17 +29,13 @@ export function CtDashboard() {
     modeloOptions,
   } = useDashboardFilters(responses);
 
-  // "chamado": população de chamados no período — pesquisas enviadas.
-  // "resposta": quando a pesquisa foi de fato respondida — NPS, avaliação por CT.
+  // Uma única população (pesquisas enviadas) — CTs/NPS/avaliação são sempre um
+  // subconjunto dela, nunca uma data diferente.
   const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
-  const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
 
-  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
-  const avgAvaliacao = useMemo(
-    () => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)),
-    [filteredByResposta]
-  );
-  const cts = useMemo(() => ctStats(filteredByResposta), [filteredByResposta]);
+  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
+  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
+  const cts = useMemo(() => ctStats(filtered), [filtered]);
 
   if (authLoading) {
     return (

@@ -29,17 +29,13 @@ export function ClienteDashboard() {
     modeloOptions,
   } = useDashboardFilters(responses);
 
-  // "chamado": população de chamados no período — pesquisas enviadas.
-  // "resposta": quando a pesquisa foi de fato respondida — NPS, avaliação por cliente.
+  // Uma única população (pesquisas enviadas) — clientes/NPS/avaliação são sempre
+  // um subconjunto dela, nunca uma data diferente.
   const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
-  const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
 
-  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
-  const avgAvaliacao = useMemo(
-    () => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)),
-    [filteredByResposta]
-  );
-  const clientes = useMemo(() => clienteStats(filteredByResposta), [filteredByResposta]);
+  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
+  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
+  const clientes = useMemo(() => clienteStats(filtered), [filtered]);
 
   if (authLoading) {
     return (

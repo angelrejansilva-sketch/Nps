@@ -78,31 +78,31 @@ export function SegmentDashboard({
     modeloOptions,
   } = useDashboardFilters(scoped);
 
-  // População de chamados no período (pesquisas enviadas, estado) — data_chamado por padrão,
-  // FT (Fechamento Técnico) em CORP PLATAFORMA.
-  // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
+  // Uma única população por página (pesquisas enviadas) — data_chamado por padrão,
+  // FT (Fechamento Técnico) em CORP PLATAFORMA. Tudo abaixo (válidas, NPS, motivo,
+  // avaliação, tendência) é sempre um subconjunto dela, nunca uma data diferente —
+  // senão "respostas válidas" pode passar de "pesquisas enviadas".
   const filtered = useMemo(
     () => applyFilters(scoped, filters, effectivePopulationDateRole),
     [scoped, filters, effectivePopulationDateRole]
   );
-  const filteredByResposta = useMemo(() => applyFilters(scoped, filters, "resposta"), [scoped, filters]);
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
-  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
-  const trend = useMemo(() => monthlyTrend(filteredByResposta, "resposta"), [filteredByResposta]);
-  const scoreDist = useMemo(() => byScore(filteredByResposta), [filteredByResposta]);
-  const motivoRanking = useMemo(() => byMotivo(filteredByResposta), [filteredByResposta]);
+  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
+  const trend = useMemo(
+    () => monthlyTrend(filtered, effectivePopulationDateRole),
+    [filtered, effectivePopulationDateRole]
+  );
+  const scoreDist = useMemo(() => byScore(filtered), [filtered]);
+  const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
   const estadoRanking = useMemo(() => byEstado(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
-  const avgAvaliacao = useMemo(
-    () => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)),
-    [filteredByResposta]
-  );
+  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
 
   const clientePoints = useMemo(
-    () => (showClienteRanking ? byCliente(filteredByResposta) : []),
-    [filteredByResposta, showClienteRanking]
+    () => (showClienteRanking ? byCliente(filtered) : []),
+    [filtered, showClienteRanking]
   );
   const promotersByCliente = useMemo(
     () => topByPromoters(clientePoints).map((p) => ({ category: p.category, value: p.promoters })),
@@ -208,7 +208,7 @@ export function SegmentDashboard({
             <SectionCard title="NPS de serviço" subtitle="Faixas: crítico, aperfeiçoamento, qualidade, excelente">
               <NpsGauge summary={summary} />
             </SectionCard>
-            <SectionCard title="NPS por mês" subtitle="Evolução mensal por data da resposta">
+            <SectionCard title="NPS por mês" subtitle="Evolução mensal">
               <NpsTrendChart data={trend} />
             </SectionCard>
           </div>
@@ -218,7 +218,7 @@ export function SegmentDashboard({
               <ScoreHistogram data={scoreDist} />
             </SectionCard>
             <SectionCard title="Problema solucionado" subtitle="Chamados distintos por resposta">
-              <ResolutionBar responses={filteredByResposta} />
+              <ResolutionBar responses={filtered} />
             </SectionCard>
           </div>
 
@@ -243,7 +243,7 @@ export function SegmentDashboard({
           </div>
 
           <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-            <CommentsExplorer responses={filteredByResposta} />
+            <CommentsExplorer responses={filtered} />
           </SectionCard>
         </main>
       </div>

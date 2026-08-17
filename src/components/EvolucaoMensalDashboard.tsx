@@ -34,9 +34,9 @@ export function EvolucaoMensalDashboard() {
     return yearOptions[0] ?? new Date().getFullYear();
   }, [filters.dateFrom, yearOptions]);
 
-  // Evolução mensal é sobre respostas — cada linha da tabela é um mês pela data da resposta.
-  const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
-  const monthly = useMemo(() => monthlyTrend(filteredByResposta, "resposta"), [filteredByResposta]);
+  // Mesma população usada nas demais telas (pesquisas enviadas, por data_chamado).
+  const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
+  const monthly = useMemo(() => monthlyTrend(filtered, "chamado"), [filtered]);
 
   if (authLoading) {
     return (
@@ -80,7 +80,7 @@ export function EvolucaoMensalDashboard() {
           onSignOut={signOut}
           stats={[
             { label: "Ano selecionado", value: String(selectedYear) },
-            { label: "Respostas no ano", value: formatNumber(filteredByResposta.length) },
+            { label: "Pesquisas no ano", value: formatNumber(filtered.length) },
           ]}
           onResetFilters={() => setFilters(defaultYearFilters())}
         >
@@ -99,7 +99,7 @@ export function EvolucaoMensalDashboard() {
 
         <main className="flex min-w-0 flex-1 flex-col gap-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <SectionCard title="Evolução do NPS" subtitle={`Mês a mês em ${selectedYear}, por data da resposta`}>
+            <SectionCard title="Evolução do NPS" subtitle={`Mês a mês em ${selectedYear}, por data do chamado`}>
               <NpsTrendChart data={monthly} />
             </SectionCard>
             <SectionCard title="Volume de respostas" subtitle={`Mês a mês em ${selectedYear}`}>

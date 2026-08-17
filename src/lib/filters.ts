@@ -65,17 +65,17 @@ export function defaultYearFilters(): Filters {
 }
 
 /**
- * data_chamado, created_at (resposta) e FT (Fechamento Técnico) não são a mesma coisa —
- * um chamado pode ter data_chamado no futuro em relação a quando a pesquisa foi respondida.
- * "chamado" período por data_chamado (população de chamados no período, padrão);
- * "resposta" período por created_at (quando a pesquisa foi de fato respondida);
- * "ft" período pelo Fechamento Técnico do chamado — usado só em CORP PLATAFORMA.
+ * Toda página escopa sua população pelo MESMO campo de data — nunca um pra "enviadas"
+ * e outro pra "válidas"/NPS, senão os dois números deixam de bater (válidas > enviadas).
+ * "chamado" período por data_chamado (padrão); "ft" período pelo Fechamento Técnico,
+ * usado só em CORP PLATAFORMA. Tudo mais (válidas, NPS, motivo, avaliação, tendência)
+ * é sempre um subconjunto dessa mesma população já filtrada.
  */
-export type DateRole = "chamado" | "resposta" | "ft";
+export type DateRole = "chamado" | "ft";
 
 export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
   if (role === "ft") return r.ftDate ?? r.dataChamado ?? r.createdAt;
-  return role === "resposta" ? (r.createdAt ?? r.dataChamado) : (r.dataChamado ?? r.createdAt);
+  return r.dataChamado ?? r.createdAt;
 }
 
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */

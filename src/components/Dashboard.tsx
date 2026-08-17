@@ -75,29 +75,25 @@ export function Dashboard() {
     modeloOptions,
   } = useDashboardFilters(responses);
 
-  // "chamado": população de chamados no período (data_chamado) — pesquisas enviadas, rankings.
-  // "resposta": quando a pesquisa foi de fato respondida (created_at) — NPS, notas, satisfação.
+  // Uma única população (pesquisas enviadas, por data_chamado) — tudo abaixo (válidas,
+  // NPS, rankings, tendência) é sempre um subconjunto dela, nunca uma data diferente.
   const filtered = useMemo(() => applyFilters(responses, filters, "chamado"), [responses, filters]);
-  const filteredByResposta = useMemo(() => applyFilters(responses, filters, "resposta"), [responses, filters]);
   const ineligibleCount = useMemo(() => responses.length - eligibleResponses.length, [responses, eligibleResponses]);
 
-  const summary = useMemo(() => summarizeNps(filteredByResposta), [filteredByResposta]);
-  const trend = useMemo(() => monthlyTrend(filteredByResposta, "resposta"), [filteredByResposta]);
+  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
+  const trend = useMemo(() => monthlyTrend(filtered, "chamado"), [filtered]);
   const equipmentRanking = useMemo(() => byEquipmentCategory(filtered), [filtered]);
   const segmentoRanking = useMemo(() => bySegmento(filtered), [filtered]);
   const marcaRanking = useMemo(() => byMarca(filtered), [filtered]);
   const bareboneRanking = useMemo(() => byBarebone(filtered), [filtered]);
-  const motivoRanking = useMemo(() => byMotivo(filteredByResposta), [filteredByResposta]);
+  const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
-  const resRate = useMemo(() => resolutionRate(filteredByResposta), [filteredByResposta]);
-  const avgAvaliacao = useMemo(() => averageOf(filteredByResposta.map((r) => r.avaliacaoProduto)), [filteredByResposta]);
-  const avgSatisfacao = useMemo(() => averageOf(filteredByResposta.map((r) => r.satisfacaoAtp)), [filteredByResposta]);
+  const resRate = useMemo(() => resolutionRate(filtered), [filtered]);
+  const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
+  const avgSatisfacao = useMemo(() => averageOf(filtered.map((r) => r.satisfacaoAtp)), [filtered]);
 
-  const aiSummary = useMemo(
-    () => buildAiDataSummary(filteredByResposta, responses.length),
-    [filteredByResposta, responses.length]
-  );
+  const aiSummary = useMemo(() => buildAiDataSummary(filtered, responses.length), [filtered, responses.length]);
 
   if (authLoading) {
     return (
@@ -274,10 +270,10 @@ export function Dashboard() {
           </SectionCard>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <SectionCard title="Evolução do NPS" subtitle="Por mês da resposta">
+            <SectionCard title="Evolução do NPS" subtitle="Por mês do chamado">
               <NpsTrendChart data={trend} />
             </SectionCard>
-            <SectionCard title="Volume de respostas" subtitle="Por mês da resposta">
+            <SectionCard title="Volume de respostas" subtitle="Por mês do chamado">
               <VolumeTrendChart data={trend} />
             </SectionCard>
           </div>
@@ -326,7 +322,7 @@ export function Dashboard() {
           )}
 
           <SectionCard title="Comentários" subtitle="Palavras mais citadas e respostas com comentário">
-            <CommentsExplorer responses={filteredByResposta} />
+            <CommentsExplorer responses={filtered} />
           </SectionCard>
 
           <SectionCard
@@ -340,12 +336,12 @@ export function Dashboard() {
             title="Respostas individuais"
             subtitle="Todas as respostas no filtro atual — use para acompanhar detratores"
             action={
-              <Button variant="secondary" onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filteredByResposta))}>
-                Exportar CSV ({filteredByResposta.length})
+              <Button variant="secondary" onClick={() => downloadCsv("nps_respostas.csv", responsesToCsv(filtered))}>
+                Exportar CSV ({filtered.length})
               </Button>
             }
           >
-            <ResponseTable responses={filteredByResposta} />
+            <ResponseTable responses={filtered} />
           </SectionCard>
         </main>
       </div>
