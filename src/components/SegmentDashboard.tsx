@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clienteEstado } from "@/lib/chamadosRecente";
-import { applyFilters, bySegmentoConsolidado, defaultFilters, type DateRole } from "@/lib/filters";
+import {
+  applyFilters,
+  bySegmentoConsolidado,
+  defaultFilters,
+  formatDateOnly,
+  monthEndExclusive,
+  monthStart,
+  type DateRole,
+} from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
   averageOf,
@@ -12,7 +20,6 @@ import {
   byScore,
   govCorpNpsPopulation,
   monthlyTrend,
-  responseRate,
   summarizeNps,
   summarizeQuality,
   topByDetractors,
@@ -21,6 +28,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { useNpsData } from "@/hooks/useNpsData";
+import { createClient } from "@/lib/supabase/client";
+import { fetchChamadosEnviadosCount } from "@/lib/supabase/queries";
 import { CommentsExplorer } from "./CommentsExplorer";
 import { CountRanking } from "./CountRanking";
 import { EquipmentRanking } from "./EquipmentRanking";
@@ -66,9 +75,7 @@ export function SegmentDashboard({
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
 
   const [subSegment, setSubSegment] = useState<string | null>(null);
-  // CORP PLATAFORMA sempre usa FT como data de população, mesmo quando acessado
-  // via o toggle dentro da página de Varejo, não só pela página dedicada.
-  const effectivePopulationDateRole: DateRole = subSegment === "CORP PLATAFORMA" ? "ft" : populationDateRole;
+  const effectivePopulationDateRole: DateRole = populationDateRole;
 
   const scoped = useMemo(
     () => bySegmentoConsolidado(responses, subSegment ? [subSegment] : segmentGroup),
@@ -97,6 +104,39 @@ export function SegmentDashboard({
   );
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
+  // Pesquisas enviadas real (Power BI MEDIDAS.QTD_Chamados_Enviados): universo de
+  // chamados elegíveis (contatos distintos), não a contagem de linhas de nps_responses —
+  // nem todo chamado fechado tem uma linha de resposta sincronizada.
+  const effectiveSegmentos = useMemo(() => (subSegment ? [subSegment] : segmentGroup), [subSegment, segmentGroup]);
+  const [enviadosCount, setEnviadosCount] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const from = filters.dateFrom ? monthStart(filters.dateFrom) : null;
+    const toExclusive = filters.dateTo ? monthEndExclusive(filters.dateTo) : null;
+    const request =
+      from && toExclusive
+        ? fetchChamadosEnviadosCount(createClient(), {
+            segmentos: effectiveSegmentos,
+            marcas: filters.marcas,
+            tiposProduto: filters.tiposProduto,
+            modelos: filters.modelos,
+            chamado: filters.chamado,
+            dateFrom: formatDateOnly(from),
+            dateTo: formatDateOnly(toExclusive),
+          })
+        : Promise.resolve(null);
+    request
+      .then((count) => {
+        if (!cancelled) setEnviadosCount(count);
+      })
+      .catch(() => {
+        if (!cancelled) setEnviadosCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveSegmentos, filters.dateFrom, filters.dateTo, filters.marcas, filters.tiposProduto, filters.modelos, filters.chamado]);
+
   // NPS TOTAL do Power BI: no ramo "somente GOV/CORP" o NPS de serviço só considera
   // chamados de garantia (Tipo Encerramento = GARANTIA) e apaga meses sem pesquisa em
   // 2025. Varejo/CORP Plataforma e a base geral usam a população filtrada sem restrição.
@@ -116,7 +156,10 @@ export function SegmentDashboard({
     [filtered]
   );
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
-  const respRate = useMemo(() => responseRate(filtered), [filtered]);
+  const respRate = useMemo(
+    () => (enviadosCount ? (summary.validTotal / enviadosCount) * 100 : null),
+    [enviadosCount, summary.validTotal]
+  );
   const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);
 
   const clientePoints = useMemo(
@@ -183,7 +226,7 @@ export function SegmentDashboard({
           userEmail={profile?.email}
           onSignOut={signOut}
           stats={[
-            { label: "Pesquisas enviadas", value: formatNumber(filtered.length) },
+            { label: "Pesquisas enviadas", value: enviadosCount === null ? "…" : formatNumber(enviadosCount) },
             { label: "Respostas válidas", value: formatNumber(summary.validTotal) },
             { label: "Taxa de resposta", value: formatPercent(respRate) },
             { label: "NPS de serviço", value: formatNps(summary.nps) },
@@ -205,7 +248,11 @@ export function SegmentDashboard({
 
         <main className="flex min-w-0 flex-1 flex-col gap-6">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <KpiCard label="Pesquisas enviadas" value={formatNumber(filtered.length)} sublabel="total no filtro" />
+            <KpiCard
+              label="Pesquisas enviadas"
+              value={enviadosCount === null ? "…" : formatNumber(enviadosCount)}
+              sublabel="chamados elegíveis no período"
+            />
             <KpiCard label="Respostas válidas" value={formatNumber(summary.validTotal)} sublabel="nota de 0 a 10" />
             <KpiCard label="Taxa de resposta" value={formatPercent(respRate)} sublabel="responderam a nota" />
             <KpiCard label="Não respondidos" value={formatNumber(quality.noResponse)} sublabel="sem nota" />

@@ -125,29 +125,39 @@ export function defaultYearFilters(): Filters {
 /**
  * Toda página escopa sua população pelo MESMO campo de data — nunca um pra "enviadas"
  * e outro pra "válidas"/NPS, senão os dois números deixam de bater (válidas > enviadas).
- * "chamado" período por data_chamado (padrão); "ft" período pelo Fechamento Técnico,
- * usado só em CORP PLATAFORMA. Tudo mais (válidas, NPS, motivo, avaliação, tendência)
- * é sempre um subconjunto dessa mesma população já filtrada.
+ * "chamado" período por data_chamado; "ft" pelo Fechamento Técnico (Varejo/CORP Plataforma
+ * no Power BI); "encerramento" pelo Encerramento (GOV/CORP/HASS no Power BI). Tudo mais
+ * (válidas, NPS, motivo, avaliação, tendência) é sempre um subconjunto dessa mesma
+ * população já filtrada.
  */
-export type DateRole = "chamado" | "ft";
+export type DateRole = "chamado" | "ft" | "encerramento";
 
 export function dateForRole(r: NpsResponse, role: DateRole): Date | null {
   if (role === "ft") return r.ftDate ?? r.dataChamado ?? r.createdAt;
+  if (role === "encerramento") return r.encerramentoDate ?? r.dataChamado ?? r.createdAt;
   return r.dataChamado ?? r.createdAt;
 }
 
 /** Parses a `YYYY-MM` filter value into the first day of that month (local time). */
-function monthStart(value: string): Date | null {
+export function monthStart(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})$/);
   if (!match) return null;
   return new Date(Number(match[1]), Number(match[2]) - 1, 1);
 }
 
 /** First instant of the month *after* a `YYYY-MM` filter value — the exclusive upper bound. */
-function monthEndExclusive(value: string): Date | null {
+export function monthEndExclusive(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})$/);
   if (!match) return null;
   return new Date(Number(match[1]), Number(match[2]), 1);
+}
+
+/** Formats a local Date as `YYYY-MM-DD`, for sending date-only values to Postgres. */
+export function formatDateOnly(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export function applyFilters(responses: NpsResponse[], filters: Filters, dateRole: DateRole = "chamado"): NpsResponse[] {

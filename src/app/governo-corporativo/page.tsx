@@ -7,6 +7,7 @@ export default function GovernoCorporativoPage() {
       title="NPS Governo / Corporativo"
       subtitle="Segmentos: GOV, CORP, HASS GOV e HASS CORP — use o filtro acima para separar"
       segmentGroup={GOVCORP_SEGMENTOS}
+      populationDateRole="encerramento"
       showClienteRanking
       restrictGovCorpNps
       subSegmentOptions={[

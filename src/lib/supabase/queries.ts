@@ -149,6 +149,40 @@ export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
 }
 
 /** Recalcula Num_Ocorrência (recorrência por número de série) em nps_chamados e propaga em nps_responses via syncSegmento. */
+export interface ChamadosEnviadosParams {
+  segmentos: string[];
+  marcas?: string[];
+  tiposProduto?: string[];
+  modelos?: string[];
+  chamado?: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+}
+
+/**
+ * Universo de "pesquisas enviadas" (Power BI MEDIDAS.QTD_Chamados_Enviados): contatos
+ * distintos elegíveis em Chamados_Recente, escopados por FT (Varejo/CORP Plataforma) ou
+ * Encerramento+GARANTIA (GOV/CORP/HASS) — não é a contagem de linhas de nps_responses.
+ */
+export async function fetchChamadosEnviadosCount(
+  supabase: SupabaseClient,
+  params: ChamadosEnviadosParams
+): Promise<number> {
+  if (!params.dateFrom || !params.dateTo || params.segmentos.length === 0) return 0;
+
+  const { data, error } = await supabase.rpc("chamados_enviados_count", {
+    p_segmentos: params.segmentos,
+    p_marcas: params.marcas?.length ? params.marcas : null,
+    p_tipos_produto: params.tiposProduto?.length ? params.tiposProduto : null,
+    p_modelos: params.modelos?.length ? params.modelos : null,
+    p_chamado: params.chamado || null,
+    p_date_from: params.dateFrom,
+    p_date_to: params.dateTo,
+  });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
 export async function syncRecorrencia(supabase: SupabaseClient): Promise<number> {
   const { data, error } = await supabase.rpc("sync_nps_recorrencia");
   if (error) throw error;
