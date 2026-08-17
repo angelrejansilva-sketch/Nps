@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { clienteEstado } from "@/lib/chamadosRecente";
 import { applyFilters, bySegmentoConsolidado, defaultFilters, type DateRole } from "@/lib/filters";
 import { formatNps, formatNumber, formatPercent } from "@/lib/format";
 import {
@@ -9,6 +10,7 @@ import {
   byEstado,
   byMotivo,
   byScore,
+  govCorpNpsPopulation,
   monthlyTrend,
   responseRate,
   summarizeNps,
@@ -43,6 +45,12 @@ interface SegmentDashboardProps {
   populationDateRole?: DateRole;
   /** Se definido, mostra um toggle pra separar os segmentos dentro do grupo (ex: Varejo vs Corp Plataforma). */
   subSegmentOptions?: SegmentToggleOption[];
+  /**
+   * NPS TOTAL do Power BI, ramo "somente GOV/CORP": restringe o NPS de serviço
+   * (gauge + tendência) a chamados de garantia, com a janela de meses de 2025.
+   * VAREJO e a base sem filtro de segmento não têm essa restrição.
+   */
+  restrictGovCorpNps?: boolean;
 }
 
 export function SegmentDashboard({
@@ -52,6 +60,7 @@ export function SegmentDashboard({
   showClienteRanking,
   populationDateRole = "chamado",
   subSegmentOptions,
+  restrictGovCorpNps = false,
 }: SegmentDashboardProps) {
   const { profile, loading: authLoading, signOut } = useAuth();
   const { responses, loading: dataLoading, loadProgress, error } = useNpsData(profile?.id);
@@ -88,14 +97,24 @@ export function SegmentDashboard({
   );
   const ineligibleCount = useMemo(() => scoped.length - eligibleScoped.length, [scoped, eligibleScoped]);
 
-  const summary = useMemo(() => summarizeNps(filtered), [filtered]);
+  // NPS TOTAL do Power BI: no ramo "somente GOV/CORP" o NPS de serviço só considera
+  // chamados de garantia (Tipo Encerramento = GARANTIA) e apaga meses sem pesquisa em
+  // 2025. Varejo/CORP Plataforma e a base geral usam a população filtrada sem restrição.
+  const npsPopulation = useMemo(
+    () => (restrictGovCorpNps ? govCorpNpsPopulation(filtered) : filtered),
+    [filtered, restrictGovCorpNps]
+  );
+  const summary = useMemo(() => summarizeNps(npsPopulation), [npsPopulation]);
   const trend = useMemo(
-    () => monthlyTrend(filtered, effectivePopulationDateRole),
-    [filtered, effectivePopulationDateRole]
+    () => monthlyTrend(npsPopulation, effectivePopulationDateRole),
+    [npsPopulation, effectivePopulationDateRole]
   );
   const scoreDist = useMemo(() => byScore(filtered), [filtered]);
   const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
-  const estadoRanking = useMemo(() => byEstado(filtered), [filtered]);
+  const estadoRanking = useMemo(
+    () => byEstado(filtered).map((p) => ({ ...p, category: p.category === "Não classificado" ? p.category : clienteEstado(p.category) })),
+    [filtered]
+  );
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
   const avgAvaliacao = useMemo(() => averageOf(filtered.map((r) => r.avaliacaoProduto)), [filtered]);

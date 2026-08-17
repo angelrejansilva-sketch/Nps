@@ -1,5 +1,6 @@
+import { tipoEncerramento, tipoEquipamento, tipoEquipamento2 } from "./chamadosRecente";
 import { dateForRole, type DateRole } from "./filters";
-import type { NpsResponse } from "./types";
+import type { Classification, NpsResponse } from "./types";
 
 export interface NpsSummary {
   nps: number | null;
@@ -9,21 +10,63 @@ export interface NpsSummary {
   validTotal: number;
 }
 
-export function summarizeNps(responses: NpsResponse[]): NpsSummary {
+function summarizeByClassification(
+  responses: NpsResponse[],
+  classificationOf: (r: NpsResponse) => Classification | null
+): NpsSummary {
   let promoters = 0;
   let passives = 0;
   let detractors = 0;
 
   for (const r of responses) {
-    if (r.classification === "promoter") promoters++;
-    else if (r.classification === "passive") passives++;
-    else if (r.classification === "detractor") detractors++;
+    const c = classificationOf(r);
+    if (c === "promoter") promoters++;
+    else if (c === "passive") passives++;
+    else if (c === "detractor") detractors++;
   }
 
   const validTotal = promoters + passives + detractors;
   const nps = validTotal > 0 ? ((promoters - detractors) / validTotal) * 100 : null;
 
   return { nps, promoters, passives, detractors, validTotal };
+}
+
+export function summarizeNps(responses: NpsResponse[]): NpsSummary {
+  return summarizeByClassification(responses, (r) => r.classification);
+}
+
+/** Produto_NPS do Power BI — mesma conta, só que em cima da avaliação do produto. */
+export function summarizeNpsProduto(responses: NpsResponse[]): NpsSummary {
+  return summarizeByClassification(responses, (r) => r.produtoClassification);
+}
+
+const MESES_VALIDOS_GOVCORP_2025 = new Set([3, 6, 7, 8, 9, 10, 11, 12]);
+
+/**
+ * NPS TOTAL do Power BI, ramo GOV/CORP: restringe a chamados de garantia (Tipo
+ * Encerramento = GARANTIA) e, dentro de 2025, apaga os meses fora da janela de
+ * pesquisa (jan/fev/abr/mai não tiveram pesquisa naquele ano). VAREJO e o
+ * conjunto misto (todos os segmentos juntos) não têm essa restrição — são só
+ * summarizeNps(filtered) mesmo, sem ajuste.
+ */
+export function govCorpNpsPopulation(responses: NpsResponse[]): NpsResponse[] {
+  return responses.filter((r) => {
+    if (r.encerramentoDate && r.encerramentoDate.getFullYear() === 2025) {
+      const mes = r.encerramentoDate.getMonth() + 1;
+      if (!MESES_VALIDOS_GOVCORP_2025.has(mes)) return false;
+    }
+    return tipoEncerramento(r) === "GARANTIA";
+  });
+}
+
+/** NPS_GERAL do Power BI — cruza classificação de serviço x produto. */
+export function npsGeral(r: NpsResponse): string {
+  const servicoRuim = r.classification === "detractor" || r.classification === "passive";
+  const produtoRuim = r.produtoClassification === "detractor" || r.produtoClassification === "passive";
+  if (servicoRuim && produtoRuim) return "Detrator / Neutro Ambos";
+  if (servicoRuim) return "Detrator Serviços";
+  if (produtoRuim) return "Detrator Produto";
+  return "Promotor";
 }
 
 /** Anos com pelo menos uma resposta na base — pra alimentar o seletor de Ano, mais recente primeiro. */
@@ -148,6 +191,21 @@ export function byEquipamentoOficial(responses: NpsResponse[]): CategoryPoint[] 
 
 export function byBarebone(responses: NpsResponse[]): CategoryPoint[] {
   return groupByKey(responses, (r) => r.barebone);
+}
+
+/** Tipo Equipamento do Power BI (Chamados_Recente, por Barebone) — categoria mais granular que equipmentCategory. */
+export function byTipoEquipamento(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => tipoEquipamento(r));
+}
+
+/** Tipo_Equipamento_2 do Power BI — colapsa os tablets, resto agrupado em OUTROS. */
+export function byTipoEquipamento2(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => tipoEquipamento2(r));
+}
+
+/** NPS_GERAL do Power BI agrupado — quantas respostas caem em cada cruzamento serviço x produto. */
+export function byNpsGeral(responses: NpsResponse[]): CategoryPoint[] {
+  return groupByKey(responses, (r) => npsGeral(r));
 }
 
 export function byEstado(responses: NpsResponse[]): CategoryPoint[] {

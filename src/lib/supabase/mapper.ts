@@ -1,5 +1,5 @@
 import { categorizeEquipment } from "@/lib/classify";
-import { parseFlexibleDate, parseScore } from "@/lib/normalize";
+import { classify, parseFlexibleDate, parseScore } from "@/lib/normalize";
 import type { NpsResponse, QualityIssue } from "@/lib/types";
 
 export interface NpsResponseRow {
@@ -22,6 +22,11 @@ export interface NpsResponseRow {
   encerramento: string | null;
   encerramento_desc: string | null;
   tipo: string | null;
+  serie: string | null;
+  descricao_material: string | null;
+  modal_de_envio: string | null;
+  data_entrega_retorno: string | null;
+  utiliza_peca: string | null;
   segmento_consolidado: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
@@ -70,12 +75,18 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     encerramentoDate: row.encerramento ? parseFlexibleDate(row.encerramento) : null,
     encerramentoDesc: row.encerramento_desc,
     tipo: row.tipo,
+    serie: row.serie,
+    descricaoMaterial: row.descricao_material,
+    modalDeEnvio: row.modal_de_envio,
+    dataEntregaRetorno: row.data_entrega_retorno,
+    utilizaPeca: row.utiliza_peca,
     segmentoConsolidado: row.segmento_consolidado,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
     scoreStatus: row.score_status,
     scoreRaw,
     classification: row.classification,
+    produtoClassification: classify(row.avaliacao_produto),
     motivoNota: row.motivo_nota ?? "",
     satisfacaoAtp: row.satisfacao_atp,
     avaliacaoProduto: row.avaliacao_produto,
@@ -107,6 +118,11 @@ export function npsResponseToDbRow(
   | "encerramento"
   | "encerramento_desc"
   | "tipo"
+  | "serie"
+  | "descricao_material"
+  | "modal_de_envio"
+  | "data_entrega_retorno"
+  | "utiliza_peca"
   | "segmento_consolidado"
 > & {
   score_status: string;

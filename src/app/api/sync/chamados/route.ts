@@ -1,7 +1,7 @@
 import { checkSyncAuth } from "@/lib/syncAuth";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
-import { chamadoRecordsToInfo, parseChamadosCsv } from "@/lib/parseChamados";
-import { syncSegmento, upsertChamadoSegmento, upsertChamados } from "@/lib/supabase/queries";
+import { parseChamadosCsv } from "@/lib/parseChamados";
+import { syncSegmento, upsertChamados } from "@/lib/supabase/queries";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,13 +27,11 @@ export async function POST(req: Request) {
       return new Response("Não encontrei a coluna de Chamado nesse CSV.", { status: 400 });
     }
 
-    const pairs = chamadoRecordsToInfo(parsed.records);
     const supabase = createServiceRoleClient();
 
-    await Promise.all([
-      pairs.length > 0 ? upsertChamadoSegmento(supabase, pairs, null) : Promise.resolve(),
-      parsed.records.length > 0 ? upsertChamados(supabase, parsed.records, null) : Promise.resolve(),
-    ]);
+    if (parsed.records.length > 0) {
+      await upsertChamados(supabase, parsed.records, null);
+    }
 
     const updated = await syncSegmento(supabase);
 

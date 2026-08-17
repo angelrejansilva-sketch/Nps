@@ -29,12 +29,19 @@ export interface NpsResponse {
   encerramentoDate: Date | null;
   encerramentoDesc: string | null;
   tipo: string | null;
+  serie: string | null;
+  descricaoMaterial: string | null;
+  modalDeEnvio: string | null;
+  dataEntregaRetorno: string | null;
+  utilizaPeca: string | null;
   segmentoConsolidado: string | null;
   problemaSolucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
   scoreStatus: ScoreStatus;
   scoreRaw: string;
   classification: Classification | null;
+  /** NPS_produto do Power BI — mesma classificação promotor/neutro/detrator, mas em cima de avaliacaoProduto. */
+  produtoClassification: Classification | null;
   motivoNota: string;
   satisfacaoAtp: number | null;
   avaliacaoProduto: number | null;

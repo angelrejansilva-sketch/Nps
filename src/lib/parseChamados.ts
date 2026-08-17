@@ -1,6 +1,5 @@
 import Papa from "papaparse";
 import { normalizeKey } from "./text";
-import type { ChamadoInfo } from "./supabase/queries";
 
 const CHAMADO_COLUMN_NAMES = [
   "ct", "atp", "abertura", "ft", "encerramento", "segmento", "tipo",
@@ -71,21 +70,4 @@ export function parseChamadosCsv(fileText: string): ParseChamadosResult {
     chamadoColumn,
     matchedColumns: [...columnByField.values()],
   };
-}
-
-/** Derives the lightweight chamado→segmento/marca/modelo lookup rows from an already-parsed batch. */
-export function chamadoRecordsToInfo(records: ChamadoRecord[]): ChamadoInfo[] {
-  const pairs: ChamadoInfo[] = [];
-  for (const r of records) {
-    if (!r.segmento && !r.sku && !r.marca && !r.equipamento && !r.barebone) continue;
-    pairs.push({
-      chamado: r.chamado,
-      segmento: r.segmento?.toUpperCase(),
-      sku: r.sku,
-      marca: r.marca?.toUpperCase(),
-      equipamentoOficial: r.equipamento?.toUpperCase(),
-      barebone: r.barebone?.toUpperCase(),
-    });
-  }
-  return pairs;
 }

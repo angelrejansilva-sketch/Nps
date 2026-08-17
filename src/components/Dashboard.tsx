@@ -11,6 +11,7 @@ import {
   byMarca,
   byMotivo,
   bySegmento,
+  byTipoEquipamento,
   monthlyTrend,
   resolutionRate,
   responseRate,
@@ -86,6 +87,7 @@ export function Dashboard() {
   const segmentoRanking = useMemo(() => bySegmento(filtered), [filtered]);
   const marcaRanking = useMemo(() => byMarca(filtered), [filtered]);
   const bareboneRanking = useMemo(() => byBarebone(filtered), [filtered]);
+  const tipoEquipamentoRanking = useMemo(() => byTipoEquipamento(filtered), [filtered]);
   const motivoRanking = useMemo(() => byMotivo(filtered), [filtered]);
   const quality = useMemo(() => summarizeQuality(filtered), [filtered]);
   const respRate = useMemo(() => responseRate(filtered), [filtered]);
@@ -305,6 +307,15 @@ export function Dashboard() {
               subtitle="Ex: VAIO TL10 — modelo oficial do chamado, top 12 por volume"
             >
               <EquipmentRanking data={bareboneRanking} />
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard
+              title="NPS por tipo de equipamento"
+              subtitle="Tipo Equipamento do Chamados_Recente — classificação por Barebone, mais granular que a categoria acima"
+            >
+              <EquipmentRanking data={tipoEquipamentoRanking} />
             </SectionCard>
           </div>
 

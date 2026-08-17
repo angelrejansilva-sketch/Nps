@@ -32,10 +32,68 @@ const MARCAS_PERMITIDAS = new Set(
   ["2AM", "ACCEPT", "AGROSMART", "ANKER", "COMPAQ", "INFINIX", "OUTROS", "POSITIVO", "QUANTUM", "VAIO"].map(normalizeKey)
 );
 
+/** Barebones excluídos do Chamados_Recente (Power BI) — kits/linhas descontinuadas. */
+const BAREBONES_EXCLUIR = new Set(
+  ["L300", "L400", "UE2020", "UE2022", "S350", "CIELO_LIO_L2"].map(normalizeKey)
+);
+
+const CLIENTES_EXCLUIR = new Set(["CAIXA ECONOMICA FEDERAL"].map(normalizeKey));
+
+/** Encerramento >= 01/12/2024 no Chamados_Recente do Power BI. */
+const CHAMADOS_RECENTE_CUTOFF = new Date(2024, 11, 1);
+
+// Quando preenchido, Encerramento_desc precisa estar nessa lista — igual ao Power BI.
+// Em branco NÃO exclui de propósito (mesmo raciocínio do segmento acima): hoje ~metade
+// das respostas ainda não bateu com a base de Chamados Encerrados, e tratar isso como
+// "inelegível" derrubaria o NPS por lacuna de sincronização, não por chamado inválido.
+const ENCERRAMENTO_DESC_PERMITIDOS = new Set(
+  [
+    "COLA SCANNER", "ENCERRAMENTO", "ENCERRAMENTO - FALHA NÃO ENCONTRADA",
+    "ENCERRAMENTO COM NEGOCIAÇÃO", "ORÇAMENTO APROVADO",
+  ].map(normalizeKey)
+);
+
+const TIPO_PERMITIDOS = new Set(
+  [
+    "ATENDIMENTO ON SITE", "PEDIDO FORA DA COMPOSIÇÃO", "SOLICITAÇÃO DE ORÇAMENTO",
+    "SUPORTE TÉCNICO HW", "TROCA APROVADA - ATP", "TROCA APROVADA - CRP",
+    "TROCA APROVADA - GCON", "TROCA APROVADA - JURÍDICO", "TROCA APROVADA - OUTROS",
+    "TROCA APROVADA - POSTA REST", "ENCERRAMENTO COM NEGOCIAÇÃO",
+  ].map(normalizeKey)
+);
+
+const TIPO_ENCERRAMENTO_COM_NEGOCIACAO = normalizeKey("ENCERRAMENTO COM NEGOCIAÇÃO");
+const TIPOS_TROCA_APROVADA = new Set(
+  [
+    "TROCA APROVADA - CRP", "TROCA APROVADA - GCON", "TROCA APROVADA - JURÍDICO",
+    "TROCA APROVADA - OUTROS", "TROCA APROVADA - POSTA REST",
+  ].map(normalizeKey)
+);
+
 export function isElegivelNps(r: NpsResponse): boolean {
   if (r.projeto && PROJETOS_EXCLUIR.has(normalizeKey(r.projeto))) return false;
   if (SEGMENTOS_EXCLUIR.has(normalizeKey(r.segmento ?? ""))) return false;
   if (r.marca && !MARCAS_PERMITIDAS.has(normalizeKey(r.marca))) return false;
+  if (r.barebone && BAREBONES_EXCLUIR.has(normalizeKey(r.barebone))) return false;
+  if (r.clienteNome && CLIENTES_EXCLUIR.has(normalizeKey(r.clienteNome))) return false;
+  if (r.encerramentoDate && r.encerramentoDate < CHAMADOS_RECENTE_CUTOFF) return false;
+
+  if (r.encerramentoDesc && !ENCERRAMENTO_DESC_PERMITIDOS.has(normalizeKey(r.encerramentoDesc))) {
+    return false;
+  }
+
+  if (r.tipo) {
+    const tipoKey = normalizeKey(r.tipo);
+    if (!TIPO_PERMITIDOS.has(tipoKey)) return false;
+
+    // Regras especiais 2025: negociação só até agosto, trocas aprovadas só a partir de setembro.
+    if (r.encerramentoDate && r.encerramentoDate.getFullYear() === 2025) {
+      const mes = r.encerramentoDate.getMonth() + 1;
+      if (tipoKey === TIPO_ENCERRAMENTO_COM_NEGOCIACAO && mes > 8) return false;
+      if (TIPOS_TROCA_APROVADA.has(tipoKey) && mes < 9) return false;
+    }
+  }
+
   return true;
 }
 

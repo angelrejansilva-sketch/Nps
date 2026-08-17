@@ -33,10 +33,9 @@ export function SegmentoUpload({ onFile, importing, progress }: SegmentoUploadPr
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-        Exporte a base de Chamados Encerrados para CSV (pode ser a exportação completa — só as
-        colunas de Chamado, Segmento, SKU, Marca, Equipamento e Barebone são usadas, o resto é
-        descartado no navegador) e importe aqui para ligar cada resposta de NPS ao segmento
-        (Varejo / Governo / Corporativo) e ao produto oficial (marca, modelo).
+        Exporte a base de Chamados Encerrados para CSV (pode ser a exportação completa — todas as
+        colunas reconhecidas são gravadas em nps_chamados) e importe aqui para ligar cada resposta
+        de NPS ao segmento (Varejo / Governo / Corporativo) e ao produto oficial (marca, modelo).
       </p>
       <div
         onClick={() => inputRef.current?.click()}

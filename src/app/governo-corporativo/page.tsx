@@ -8,6 +8,7 @@ export default function GovernoCorporativoPage() {
       subtitle="Segmentos: GOV, CORP, HASS GOV e HASS CORP — use o filtro acima para separar"
       segmentGroup={GOVCORP_SEGMENTOS}
       showClienteRanking
+      restrictGovCorpNps
       subSegmentOptions={[
         { label: "GOV", value: "GOV" },
         { label: "CORP", value: "CORP" },

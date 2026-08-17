@@ -57,7 +57,7 @@ async function runBatchesConcurrent<T>(
 }
 
 const RESPONSES_SELECT =
-  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, cliente_uf, cliente_nome, projeto, ct, ft, encerramento, encerramento_desc, tipo, segmento_consolidado, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
+  "source_id, chamado, contact_name, contact_phone, equipment_raw, equipment_category, segmento, sku, marca, equipamento_oficial, barebone, cliente_uf, cliente_nome, projeto, ct, ft, encerramento, encerramento_desc, tipo, serie, descricao_material, modal_de_envio, data_entrega_retorno, utiliza_peca, segmento_consolidado, problema_solucionado, score, score_status, score_raw, classification, motivo_nota, satisfacao_atp, avaliacao_produto, comentario, data_chamado, data_chamado_raw, created_at_source";
 
 export async function fetchAllResponses(
   supabase: SupabaseClient,
@@ -142,43 +142,15 @@ export async function upsertResponses(
   });
 }
 
-export interface ChamadoInfo {
-  chamado: string;
-  segmento?: string;
-  sku?: string;
-  marca?: string;
-  equipamentoOficial?: string;
-  barebone?: string;
-}
-
-export async function upsertChamadoSegmento(
-  supabase: SupabaseClient,
-  pairs: ChamadoInfo[],
-  importBatchId: string | null,
-  onProgress?: (done: number, total: number) => void
-): Promise<void> {
-  const rows = pairs.map((p) => ({
-    chamado: p.chamado,
-    segmento: p.segmento,
-    sku: p.sku,
-    marca: p.marca,
-    equipamento_oficial: p.equipamentoOficial,
-    barebone: p.barebone,
-    import_batch_id: importBatchId,
-  }));
-  const batches = chunk(rows, UPSERT_BATCH_SIZE);
-  let done = 0;
-
-  await runBatchesConcurrent(batches, UPSERT_CONCURRENCY, async (batch) => {
-    const { error } = await supabase.from("nps_chamado_segmento").upsert(batch, { onConflict: "chamado" });
-    if (error) throw error;
-    done += batch.length;
-    onProgress?.(done, rows.length);
-  });
-}
-
 export async function syncSegmento(supabase: SupabaseClient): Promise<number> {
   const { data, error } = await supabase.rpc("sync_nps_segmento");
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
+/** Recalcula Num_Ocorrência (recorrência por número de série) em nps_chamados e propaga em nps_responses via syncSegmento. */
+export async function syncRecorrencia(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase.rpc("sync_nps_recorrencia");
   if (error) throw error;
   return (data as number) ?? 0;
 }
