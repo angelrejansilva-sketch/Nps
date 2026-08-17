@@ -19,6 +19,9 @@ export interface NpsResponseRow {
   projeto: string | null;
   ct: string | null;
   ft: string | null;
+  encerramento: string | null;
+  encerramento_desc: string | null;
+  tipo: string | null;
   segmento_consolidado: string | null;
   problema_solucionado: "sim" | "nao" | "sem_resposta";
   score: number | null;
@@ -64,6 +67,9 @@ export function dbRowToNpsResponse(row: NpsResponseRow): NpsResponse {
     projeto: row.projeto,
     ct: row.ct,
     ftDate: row.ft ? parseFlexibleDate(row.ft) : null,
+    encerramentoDate: row.encerramento ? parseFlexibleDate(row.encerramento) : null,
+    encerramentoDesc: row.encerramento_desc,
+    tipo: row.tipo,
     segmentoConsolidado: row.segmento_consolidado,
     problemaSolucionado: row.problema_solucionado,
     score: row.score,
@@ -98,6 +104,9 @@ export function npsResponseToDbRow(
   | "projeto"
   | "ct"
   | "ft"
+  | "encerramento"
+  | "encerramento_desc"
+  | "tipo"
   | "segmento_consolidado"
 > & {
   score_status: string;
